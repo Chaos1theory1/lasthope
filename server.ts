@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import nodemailer from "nodemailer";
+import dbJsonFallback from "./src/db/db.json";
 
 // Global environment cleaning utility to wipe out quotes and trim spacing
 function cleanEnvStr(val?: string | null): string {
@@ -70,7 +71,18 @@ function loadInitialDB() {
     console.error("[Database] Failed to read initial JSON DB:", error);
   }
 
-  // Fallback template if DB file doesn't exist
+  // Fallback to statically imported database clone if DB file is missing or read fails on read-only cloud engines like Vercel
+  try {
+    if (dbJsonFallback) {
+      dbStateCache = JSON.parse(JSON.stringify(dbJsonFallback));
+      console.log(`[Database] Loaded default static database fallback successfully (Vercel/Serverless Mode)`);
+      return dbStateCache;
+    }
+  } catch (cloneErr) {
+    console.error("[Database Warning] Static fallback deep clone failed:", cloneErr);
+  }
+
+  // Final emergency fallback template if everything fails
   dbStateCache = { siteContent: {}, products: [], services: [], messages: [], adminSettings: {} };
   return dbStateCache;
 }
