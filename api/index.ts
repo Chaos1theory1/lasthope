@@ -6,7 +6,6 @@ import fs from "fs";
 import crypto from "crypto";
 import { GoogleGenAI } from "@google/genai";
 import nodemailer from "nodemailer";
-import { put } from "@vercel/blob";
 
 const app = express();
 // Middleware to parse huge JSON bodies (for user base64 photo uploads up to 20MB)
@@ -535,82 +534,6 @@ app.post("/api/auth/reset-password", (req, res) => {
 // ==========================================
 // PROTECTED SECURE ADMIN ENDPOINTS
 // ==========================================
-
-app.post("/api/media/upload", requireAdmin, async (req, res) => {
-  try {
-    const { dataUrl, filename, folder } = req.body || {};
-
-    if (!dataUrl || typeof dataUrl !== "string") {
-      return res.status(400).json({ error: "Missing image data." });
-    }
-
-    const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-
-    if (!match) {
-      return res.status(400).json({ error: "Invalid image format." });
-    }
-
-    const contentType = match[1];
-    const base64Data = match[2];
-    const buffer = Buffer.from(base64Data, "base64");
-
-    const maxSize = 3 * 1024 * 1024; // 3 MB safety limit
-
-    if (buffer.length > maxSize) {
-      return res.status(400).json({
-        error: "Image is too large. Please upload an image smaller than 3 MB."
-      });
-    }
-
-    const extension =
-      contentType === "image/png"
-        ? "png"
-        : contentType === "image/webp"
-        ? "webp"
-        : contentType === "image/gif"
-        ? "gif"
-        : contentType === "image/svg+xml"
-        ? "svg"
-        : "jpg";
-
-    const safeFolder =
-      folder === "services"
-        ? "services"
-        : folder === "logos"
-        ? "logos"
-        : folder === "qr"
-        ? "qr"
-        : "products";
-
-    const safeFilename = String(filename || "image")
-      .toLowerCase()
-      .replace(/\.[a-z0-9]+$/i, "")
-      .replace(/[^a-z0-9._-]/g, "-")
-      .replace(/-+/g, "-")
-      .slice(0, 80);
-
-    const pathname = `${safeFolder}/${Date.now()}-${crypto.randomUUID()}-${safeFilename}.${extension}`;
-
-    const blob = await put(pathname, buffer, {
-      access: "public",
-      contentType,
-      addRandomSuffix: false
-    });
-
-    return res.json({
-      success: true,
-      url: blob.url,
-      pathname: blob.pathname,
-      contentType: blob.contentType
-    });
-  } catch (error: any) {
-    console.error("Blob upload error:", error);
-
-    return res.status(500).json({
-      error: error.message || "Failed to upload image."
-    });
-  }
-});
 
 // Validate current token
 app.get("/api/auth/verify", requireAdmin, (req, res) => {

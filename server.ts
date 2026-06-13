@@ -930,12 +930,6 @@ async function startServer() {
   // Support dynamic asset loading (for logo and user assets) in both development and production
   app.use("/src/assets", express.static(path.join(process.cwd(), "src/assets")));
 
-  const isVercel = !!process.env.VERCEL;
-
-  if (isVercel) {
-    console.log("[Server] Server running inside Vercel serverless environment. Port listening bypassed.");
-    return;
-  }
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -958,5 +952,3 @@ async function startServer() {
 
 startServer();
 
-export { app };
-export default app;
