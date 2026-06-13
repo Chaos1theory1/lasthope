@@ -16,13 +16,16 @@ function cleanEnvStr(val?: string | null): string {
   return val.replace(/^["']|["']$/g, "").trim();
 }
 
-const safeFilename = (typeof import.meta !== "undefined" && import.meta && import.meta.url)
-  ? fileURLToPath(import.meta.url)
-  : (typeof __filename !== "undefined" ? __filename : "");
-
-const safeDirname = safeFilename 
-  ? path.dirname(safeFilename) 
-  : (typeof __dirname !== "undefined" ? __dirname : process.cwd());
+const safeDirname = (() => {
+  try {
+    if (typeof __dirname !== "undefined" && __dirname) return __dirname;
+  } catch {}
+  try {
+    const metaUrl = eval("import.meta.url");
+    if (metaUrl) return path.dirname(fileURLToPath(metaUrl));
+  } catch {}
+  return process.cwd();
+})();
 
 const app = express();
 const PORT = 3000;
