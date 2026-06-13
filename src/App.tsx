@@ -378,6 +378,17 @@ function getProductLocalizedValue(
   return defaultValue;
 }
 
+type BlobFolder =
+  | "products"
+  | "services"
+  | "logos"
+  | "qr"
+  | "content"
+  | "about"
+  | "team"
+  | "certifications";
+
+// Inline image asset editor for admin live image changes
 // Inline image asset editor for admin live image changes
 function EditableImage({
   src,
@@ -385,7 +396,9 @@ function EditableImage({
   isAdmin = false,
   className = "",
   alt = "",
-  maxDim = 800
+  maxDim = 800,
+  uploadImage,
+  blobFolder = "content"
 }: {
   src: string;
   onSave: (newSrc: string) => void;
@@ -393,20 +406,44 @@ function EditableImage({
   className?: string;
   alt?: string;
   maxDim?: number;
+  uploadImage?: (file: File, folder: BlobFolder, maxDim: number) => Promise<string>;
+  blobFolder?: BlobFolder;
 }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        if (typeof reader.result === "string") {
-          const resized = await resizeImage(reader.result, maxDim);
-          onSave(resized);
-        }
-      };
-      reader.readAsDataURL(file);
+
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+
+      if (uploadImage) {
+        const blobUrl = await uploadImage(file, blobFolder, maxDim);
+        onSave(blobUrl);
+      } else {
+        const reader = new FileReader();
+
+        reader.onloadend = async () => {
+          if (typeof reader.result === "string") {
+            const resized = await resizeImage(reader.result, maxDim);
+            onSave(resized);
+          }
+        };
+
+        reader.readAsDataURL(file);
+      }
+    } catch (error: any) {
+      console.error("Inline image upload failed:", error);
+      alert(error.message || "Image upload failed.");
+    } finally {
+      setIsUploading(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -417,13 +454,26 @@ function EditableImage({
   return (
     <div className="relative group overflow-hidden rounded-xl inline-block w-full h-full">
       <img src={src} alt={alt} className={className} referrerPolicy="no-referrer" />
+
       <div
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => {
+          if (!isUploading) fileInputRef.current?.click();
+        }}
         className="absolute inset-0 bg-stone-900/60 opacity-0 group-hover:opacity-100 transition duration-200 flex flex-col items-center justify-center text-white text-[10px] font-semibold cursor-pointer gap-1"
       >
-        <UploadCloud size={14} />
-         <span>Change</span>
+        {isUploading ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            <span>Uploading...</span>
+          </>
+        ) : (
+          <>
+            <UploadCloud size={14} />
+            <span>Change</span>
+          </>
+        )}
       </div>
+
       <input
         type="file"
         ref={fileInputRef}
@@ -1186,16 +1236,84 @@ export default function App() {
   };
 
   // Base64 file converter for product/service image upload
-  const handleImageUpload = (file: File, callback: (base64: string) => void) => {
+ // const handleImageUpload = (file: File, callback: (base64: string) => void) => {
+ //   const reader = new FileReader();
+ //   reader.readAsDataURL(file);
+  //  reader.onload = () => {
+  //    if (typeof reader.result === "string") {
+  //      callback(reader.result);
+  //    }
+ //   };
+ //   reader.onerror = (error) => console.error("Error reading file:", error);
+ // };
+
+ type BlobFolder = "products" | "services" | "logos" | "qr" | "content";
+
+const uploadFileToBlob = async (
+  file: File,
+  folder: BlobFolder = "content"
+): Promise<string> => {
+  if (!authToken) {
+    throw new Error("Please log in as admin before uploading images.");
+  }
+
+  if (file.size > 3 * 1024 * 1024) {
+    throw new Error("Image is too large. Please upload an image smaller than 3 MB.");
+  }
+
+  const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
+
     reader.readAsDataURL(file);
+
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        callback(reader.result);
+        resolve(reader.result);
+      } else {
+        reject(new Error("Invalid image file."));
       }
     };
-    reader.onerror = (error) => console.error("Error reading file:", error);
-  };
+
+    reader.onerror = () => reject(new Error("Could not read image file."));
+  });
+
+  const response = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      dataUrl,
+      filename: file.name,
+      folder
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Image upload failed.");
+  }
+
+  return data.url;
+};
+
+// Upload image to Vercel Blob, then save returned permanent URL
+const handleImageUpload = async (
+  file: File,
+  callback: (url: string) => void,
+  folder: BlobFolder = "products"
+) => {
+  try {
+    const url = await uploadFileToBlob(file, folder);
+    callback(url);
+  } catch (error: any) {
+    console.error("Image upload failed:", error);
+    alert(error.message || "Image upload failed.");
+  }
+};
+  
 
   // ==========================================
   // ADMIN: Create, Update, Delete Services
@@ -1506,6 +1624,8 @@ export default function App() {
                         onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage1: newImg }, false)}
                         isAdmin={isAdminLoggedIn}
                         maxDim={800}
+                         uploadImage={uploadFileToBlob}
+  blobFolder="about"
                         className="w-full h-full object-cover"
                         alt="Custom image upload card"
                       />
@@ -1624,6 +1744,8 @@ export default function App() {
                         onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage2: newImg }, false)}
                         isAdmin={isAdminLoggedIn}
                         maxDim={800}
+                         uploadImage={uploadFileToBlob}
+  blobFolder="about"
                         className="w-full h-full object-cover"
                         alt="Custom image upload card"
                       />
@@ -1742,6 +1864,8 @@ export default function App() {
                         onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage3: newImg }, false)}
                         isAdmin={isAdminLoggedIn}
                         maxDim={800}
+                         uploadImage={uploadFileToBlob}
+  blobFolder="about"
                         className="w-full h-full object-cover"
                         alt="Custom image upload card"
                       />
@@ -1860,6 +1984,8 @@ export default function App() {
                         onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage4: newImg }, false)}
                         isAdmin={isAdminLoggedIn}
                         maxDim={800}
+                         uploadImage={uploadFileToBlob}
+  blobFolder="about"
                         className="w-full h-full object-cover"
                         alt="Custom image upload card"
                       />
@@ -2050,8 +2176,11 @@ export default function App() {
                       src={siteContent.about.biotechImage}
                       onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, biotechImage: newImg }, false)}
                       isAdmin={isAdminLoggedIn}
-                      className="w-full h-full max-h-[600px] object-cover rounded-2xl"
-                      alt="Biotechnology Process Diagram"
+                      maxDim={1200}
+  uploadImage={uploadFileToBlob}
+  blobFolder="about"
+  className="w-full h-full max-h-[600px] object-cover rounded-2xl"
+  alt="Biotechnology Process Diagram"
                     />
                   </div>
                 ) : (
@@ -2443,7 +2572,11 @@ export default function App() {
                             accept="image/*"
                             onChange={(e) => {
                               if (e.target.files?.[0]) {
-                                handleImageUpload(e.target.files[0], (b64) => setQrForm({ ...qrForm, image: b64 }));
+                                handleImageUpload(
+  e.target.files[0],
+  (url) => setQrForm((prev) => ({ ...prev, image: url })),
+  "qr"
+);
                               }
                             }}
                             className="w-full bg-white border border-stone-250 rounded-lg p-1 text-xs text-stone-900"
@@ -2591,29 +2724,31 @@ export default function App() {
               {/* Lab Visual representation image card */}
               <div className="rounded-3xl border border-stone-200 relative overflow-hidden mx-auto w-full max-w-xl bg-stone-100 shadow-xs h-[240px] sm:h-[280px] flex items-center justify-center">
                 <EditableImage
-                  src={
-                    currentLanguage === "fr"
-                      ? siteContent.about.frenchLabImage || "/src/assets/images/French.jpeg"
-                      : currentLanguage === "ar"
-                      ? siteContent.about.arabicLabImage || "/src/assets/images/Arabic.jpeg"
-                      : siteContent.about.englishLabImage || "/src/assets/images/English.jpeg"
-                  }
-                  alt={`${currentLanguage} illustration`}
-                  onSave={(newImg) => {
-                    const updateObj: any = {};
-                    if (currentLanguage === "fr") {
-                      updateObj.frenchLabImage = newImg;
-                    } else if (currentLanguage === "ar") {
-                      updateObj.arabicLabImage = newImg;
-                    } else {
-                      updateObj.englishLabImage = newImg;
-                    }
-                    handleUpdateTextSection("about", { ...siteContent.about, ...updateObj }, true);
-                  }}
-                  isAdmin={isAdminLoggedIn}
-                  maxDim={600}
-                  className="h-full w-full object-contain rounded-2xl"
-                />
+  src={
+    currentLanguage === "fr"
+      ? siteContent.about.frenchLabImage || "/src/assets/images/French.jpeg"
+      : currentLanguage === "ar"
+      ? siteContent.about.arabicLabImage || "/src/assets/images/Arabic.jpeg"
+      : siteContent.about.englishLabImage || "/src/assets/images/English.jpeg"
+  }
+  alt={`${currentLanguage} illustration`}
+  onSave={(newImg) => {
+    const updateObj: any = {};
+    if (currentLanguage === "fr") {
+      updateObj.frenchLabImage = newImg;
+    } else if (currentLanguage === "ar") {
+      updateObj.arabicLabImage = newImg;
+    } else {
+      updateObj.englishLabImage = newImg;
+    }
+    handleUpdateTextSection("about", { ...siteContent.about, ...updateObj }, true);
+  }}
+  isAdmin={isAdminLoggedIn}
+  maxDim={600}
+  uploadImage={uploadFileToBlob}
+  blobFolder="about"
+  className="h-full w-full object-contain rounded-2xl"
+/>
               </div>
             </div>
 
@@ -2640,13 +2775,16 @@ export default function App() {
 
                 {siteContent.about.missionImage ? (
                   <div className="w-full h-full min-h-[160px] rounded-xl overflow-hidden">
-                    <EditableImage
-                      src={siteContent.about.missionImage}
-                      onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, missionImage: newImg }, false)}
-                      isAdmin={isAdminLoggedIn}
-                      className="w-full h-full object-cover rounded-xl"
-                      alt="Mission Graphics"
-                    />
+                   <EditableImage
+  src={siteContent.about.missionImage}
+  onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, missionImage: newImg }, false)}
+  isAdmin={isAdminLoggedIn}
+  maxDim={800}
+  uploadImage={uploadFileToBlob}
+  blobFolder="about"
+  className="w-full h-full object-cover rounded-xl"
+  alt="Mission Graphics"
+/>
                   </div>
                 ) : (
                   <>
@@ -2750,12 +2888,15 @@ export default function App() {
                 {siteContent.about.visionImage ? (
                   <div className="w-full h-full min-h-[160px] rounded-xl overflow-hidden">
                     <EditableImage
-                      src={siteContent.about.visionImage}
-                      onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, visionImage: newImg }, false)}
-                      isAdmin={isAdminLoggedIn}
-                      className="w-full h-full object-cover rounded-xl"
-                      alt="Vision Graphics"
-                    />
+  src={siteContent.about.visionImage}
+  onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, visionImage: newImg }, false)}
+  isAdmin={isAdminLoggedIn}
+  maxDim={800}
+  uploadImage={uploadFileToBlob}
+  blobFolder="about"
+  className="w-full h-full object-cover rounded-xl"
+  alt="Vision Graphics"
+/>
                   </div>
                 ) : (
                   <>
@@ -2887,14 +3028,16 @@ export default function App() {
                       </div>
                     )}
                     <div className="w-32 h-32 rounded-full overflow-hidden border border-stone-200/80 shadow-inner">
-                      <EditableImage
-                        src={member.image || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300"}
-                        onSave={(newImg) => handleUpdateTeamMember(member.id, { image: newImg })}
-                        isAdmin={isAdminLoggedIn}
-                        className="w-full h-full object-cover"
-                        alt={member.name}
-                      />
-                    </div>
+                     <EditableImage
+  src={member.image || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300"}
+  onSave={(newImg) => handleUpdateTeamMember(member.id, { image: newImg })}
+  isAdmin={isAdminLoggedIn}
+  maxDim={600}
+  uploadImage={uploadFileToBlob}
+  blobFolder="team"
+  className="w-full h-full object-cover"
+  alt={member.name}
+/>
                     <div className="space-y-1">
                       <h3 className="font-display font-medium text-lg text-stone-900 leading-tight">
                         <EditableText
@@ -2971,13 +3114,16 @@ export default function App() {
                           </button>
                         )}
                         <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border border-stone-200 flex items-center justify-center p-2 mb-1">
-                          <EditableImage
-                            src={cert.image || "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=150"}
-                            onSave={(newImg) => handleUpdateCertification(cert.id, { image: newImg })}
-                            isAdmin={isAdminLoggedIn}
-                            className="max-h-full max-w-full object-contain"
-                            alt={cert.title}
-                          />
+                         <EditableImage
+  src={cert.image || "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=150"}
+  onSave={(newImg) => handleUpdateCertification(cert.id, { image: newImg })}
+  isAdmin={isAdminLoggedIn}
+  maxDim={400}
+  uploadImage={uploadFileToBlob}
+  blobFolder="certifications"
+  className="max-h-full max-w-full object-contain"
+  alt={cert.title}
+/>
                         </div>
                         <h3 className="font-display font-semibold text-sm text-stone-900 leading-tight">
                           <EditableText
@@ -4019,18 +4165,18 @@ export default function App() {
                               setIsDraggingLogo(true);
                             }}
                             onDragLeave={() => setIsDraggingLogo(false)}
-                            onDrop={(e) => {
+                            onDrop={async (e) => {
                               e.preventDefault();
                               setIsDraggingLogo(false);
                               const file = e.dataTransfer.files?.[0];
                               if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  const base64String = reader.result as string;
-                                  setLogoUrlInput(base64String);
-                                  handleUpdateTextSection("logo", { logoUrl: base64String });
-                                };
-                                reader.readAsDataURL(file);
+                                try {
+  const url = await uploadFileToBlob(file, "logos");
+  setLogoUrlInput(url);
+  handleUpdateTextSection("logo", { logoUrl: url });
+} catch (error: any) {
+  alert(error.message || "Logo upload failed.");
+}
                               }
                             }}
                             className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer select-none ${
@@ -4048,16 +4194,16 @@ export default function App() {
                               id="logo-file-input"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => {
-                                    const base64String = reader.result as string;
-                                    setLogoUrlInput(base64String);
-                                    handleUpdateTextSection("logo", { logoUrl: base64String });
-                                  };
-                                  reader.readAsDataURL(file);
+                                 try {
+  const url = await uploadFileToBlob(file, "logos");
+  setLogoUrlInput(url);
+  handleUpdateTextSection("logo", { logoUrl: url });
+} catch (error: any) {
+  alert(error.message || "Logo upload failed.");
+}
                                 }
                               }}
                             />
@@ -4655,7 +4801,11 @@ export default function App() {
                                 accept="image/*"
                                 onChange={(e) => {
                                   if (e.target.files?.[0]) {
-                                    handleImageUpload(e.target.files[0], (b64) => setProductForm({ ...productForm, image: b64 }));
+                                    handleImageUpload(
+  e.target.files[0],
+  (url) => setProductForm((prev) => ({ ...prev, image: url })),
+  "products"
+);
                                   }
                                 }}
                                 className="w-full bg-stone-100 border border-stone-300 rounded-lg text-[10px] p-1"
@@ -4904,7 +5054,11 @@ export default function App() {
                               accept="image/*"
                               onChange={(e) => {
                                 if (e.target.files?.[0]) {
-                                  handleImageUpload(e.target.files[0], (b64) => setServiceForm({ ...serviceForm, image: b64 }));
+                                  handleImageUpload(
+  e.target.files[0],
+  (url) => setServiceForm((prev) => ({ ...prev, image: url })),
+  "services"
+);
                                 }
                               }}
                               className="w-full bg-stone-100 border border-stone-305 text-[10px] p-1 rounded"
