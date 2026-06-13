@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 550" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#022c22" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="550" fill="url(#bgGrad)" />
+  <rect width="800" height="550" fill="none" stroke="#1f2937" stroke-width="2" />
+
+  <!-- Grid overlay -->
+  <path d="M 0,50 L 800,50 M 0,100 L 800,100 M 0,150 L 800,150 M 0,200 L 800,200 M 0,250 L 800,250 M 0,300 L 800,300 M 0,350 L 800,350 M 0,400 L 800,400 M 0,450 L 800,450 M 0,500 L 800,500" stroke="#1f2937" stroke-width="0.5" opacity="0.4" />
+  <path d="M 100,0 L 100,550 M 200,0 L 200,550 M 300,0 L 300,550 M 400,0 L 400,550 M 500,0 L 500,550 M 600,0 L 600,550 M 700,0 L 700,550" stroke="#1f2937" stroke-width="0.5" opacity="0.4" />
+
+  <!-- Title / Label -->
+  <rect x="30" y="30" width="180" height="25" rx="5" fill="#042f2e" stroke="#0f766e" stroke-width="1" />
+  <text x="120" y="46" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" fill="#34d399" text-anchor="middle">NORME DE LABO: EN 14644-1</text>
+  
+  <text x="30" y="85" font-family="'Inter', sans-serif" font-size="24" font-weight="bold" fill="#ffffff" letter-spacing="-0.5">Flux Aseptique Biotech Agro</text>
+  <text x="30" y="110" font-family="'Inter', sans-serif" font-size="13" font-weight="300" fill="#9ca3af">Visualisation du protocole de propagation stérile</text>
+
+  <!-- Process nodes connection lines -->
+  <path d="M 140,280 L 320,280 M 380,280 L 560,280" stroke="#10b981" stroke-width="3" stroke-dasharray="8 4" />
+  <path d="M 350,330 L 350,400" stroke="#10b981" stroke-width="2" opacity="0.5" />
+
+  <!-- Node 1: Clonage sur Boîte -->
+  <g transform="translate(140, 280)">
+    <circle r="45" fill="#022c22" stroke="#10b981" stroke-width="2" filter="url(#glow)" />
+    <circle r="35" fill="#064e3b" stroke="#34d399" stroke-width="1" />
+    <!-- Agar petri drawing -->
+    <circle r="25" fill="#047857" opacity="0.4" />
+    <path d="M -15,0 Q -5,10 10,-5 M -10,-10 Q 5,15 15,0" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" />
+    <text y="-55" font-family="'Inter', sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">1. Clonage Gélose</text>
+    <text y="-38" font-family="'Inter', sans-serif" font-size="9" fill="#9ca3af" text-anchor="middle">Isolement sous hotte HEPA</text>
+  </g>
+
+  <!-- Node 2: Inoculation des Flacons -->
+  <g transform="translate(350, 280)">
+    <circle r="50" fill="#022c22" stroke="#10b981" stroke-width="2" filter="url(#glow)" />
+    <circle r="40" fill="#064e3b" stroke="#34d399" stroke-width="1" />
+    <!-- Flask drawing -->
+    <path d="M -10,-25 L 10,-25 L 10,-15 L 20,15 A 5,5 0 0,1 15,22 L -15,22 A 5,5 0 0,1 -20,15 L -10,-15 Z" fill="none" stroke="#6ee7b7" stroke-width="2" stroke-linejoin="round" />
+    <circle cx="0" cy="12" r="6" fill="#34d399" opacity="0.6" />
+    <text y="-60" font-family="'Inter', sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">2. Inoculation Aseptique</text>
+    <text y="-43" font-family="'Inter', sans-serif" font-size="9" fill="#9ca3af" text-anchor="middle">Mycélium liquide stérile</text>
+  </g>
+
+  <!-- Node 3: Colonisation Complète -->
+  <g transform="translate(560, 280)">
+    <circle r="45" fill="#022c22" stroke="#10b981" stroke-width="2" filter="url(#glow)" />
+    <circle r="35" fill="#064e3b" stroke="#34d399" stroke-width="1" />
+    <!-- Mycelium seed drawing -->
+    <circle cx="-10" cy="-5" r="4" fill="#a7f3d0" />
+    <circle cx="5" cy="10" r="5" fill="#a7f3d0" />
+    <circle cx="12" cy="-8" r="3" fill="#6ee7b7" />
+    <path d="M -5,-5 L 5,5 M 5,5 L 12,-8 M -10,-5 L 5,10" stroke="#ffffff" stroke-width="1.5" />
+    <text y="-55" font-family="'Inter', sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">3. Colonisation</text>
+    <text y="-38" font-family="'Inter', sans-serif" font-size="9" fill="#9ca3af" text-anchor="middle">Réseau fongique dense</text>
+  </g>
+
+  <!-- Node 4: Contrôle Qualité -->
+  <g transform="translate(350, 440)">
+    <rect x="-110" y="-18" width="220" height="36" rx="8" fill="#111827" stroke="#10b981" stroke-width="1" />
+    <text y="5" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold" fill="#34d399" text-anchor="middle">TRAÇABILITÉ NUMÉRIQUE PAR QR</text>
+  </g>
+
+  <!-- Extra technical indicators -->
+  <text x="30" y="510" font-family="'JetBrains Mono', monospace" font-size="10" fill="#6b7280" xml:space="preserve">Température: 22°C | Humidité: 65% | Renouvellement d'air: 140 m³/h</text>
+  <text x="770" y="510" font-family="'JetBrains Mono', monospace" font-size="10" fill="#059669" text-anchor="end">SÉCURITÉ ET RENDEMENT GARANTIS</text>
+</svg>

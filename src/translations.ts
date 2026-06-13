@@ -1,0 +1,271 @@
+/**
+ * Localization translations for Biotech Agro Website
+ * Supports English (en), French (fr), and Arabic (ar)
+ */
+
+export const i18n = {
+  en: {
+    // Navbar
+    navHome: "Home",
+    navAbout: "About Us",
+    navProducts: "Products & Services",
+    navContact: "Contact",
+    staffAccess: "Staff Access",
+    adminConsole: "Console",
+    signOut: "Sign Out",
+
+    // Home Page
+    certifiedQuality: "Certified Quality",
+    certifiedQualityDesc: "Selection of pure strains in sterile conditions under clean laminar stream HEPA flow.",
+    localProduction: "Local Spawn",
+    localProductionDesc: "Prepared on Tunis-harvested primary cereal grain of premium grade.",
+    bioMaterials: "Eco-materials",
+    bioMaterialsDesc: "Developing 100% biodegradable ecological sheets from mycelium compost substrate.",
+    setupAndConsulting: "Setup & Consulting",
+    setupAndConsultingDesc: "Elite advisory and cleanroom installation support for modern growers.",
+    whatWeDo: "What We Do",
+    advancedBiologicalSolutions: "Advanced Biological Solutions for Agriculture",
+    ecoCircularitySub: "We cycle agricultural co-products to foster sustainable circular systems.",
+    exploreCatalog: "Explore Index",
+    contactUs: "Contact Us",
+
+    // Products / Services Page
+    catalogTitle: "Our Specialty Catalogue",
+    catalogSubtitle: "Select a category below to filter our advanced fungal assets and solutions.",
+    allCategories: "All Categories",
+    grainSpawnCategory: "Grain Spawn",
+    startingCulturesCategory: "Starting Cultures",
+    biomaterialCategory: "Bio-materials",
+    consultingCategory: "Consulting & Setup",
+    priceText: "Price",
+    statusText: "Status",
+    availableText: "Available",
+    outOfStockText: "Out of Stock",
+    preOrderText: "Pre-order",
+    productionDateText: "Production",
+    expirationDateText: "Expiration",
+    originCertificateText: "Certificate of Analysis",
+    unknownDateText: "Not specified",
+    bindDocText: "Link Document",
+    noProductsText: "No products found in this category.",
+    viewFileText: "View Certificate",
+
+    // About Page
+    whoAreWe: "Who are we?",
+    sciConvictions: "Our team and scientific circular convictions.",
+    aboutStory: "Our Bio-Tech Story",
+    aboutMission: "Our Core Mission",
+    aboutVision: "Our Strategic Vision",
+    aboutTeam: "Meet Our Innovators",
+    aboutTeamDesc: "Discover the passionate professionals behind Biotech Agro Tunisia.",
+    certificationsTitle: "Certifications & Standard Norms",
+    certificationsDesc: "To ensure absolute sterility, high yields, and traceability across our premium spawn lines.",
+    inactiveCertSection: "No active certification files attached. Admin can add them live.",
+    addTeamMember: "Add Team Member",
+    addCertification: "Add Certification",
+
+    // Contact Page
+    contactTitle: "Contact Us",
+    contactSubtitle: "Questions about spawn catalogs, cleanroom setups, or partnerships? Message our team.",
+    officeContacts: "Office Contacts",
+    sendAMessage: "Send a Message",
+    fullNameLabel: "Full Name",
+    emailLabel: "Email Address",
+    phoneLabel: "Phone Number",
+    subjectLabel: "Subject",
+    messageLabel: "Message Details",
+    sendMessageButton: "Send Inquiry",
+    sendingButton: "Sending Inquiry...",
+    sendingSuccess: "Inquiry sent successfully!",
+    officeHoursLabel: "Office Hours",
+
+    // Footer
+    labIdLabel: "Laboratory ID",
+    quickLinks: "Quick Navigation",
+    regionalBases: "Regional Operations",
+    officeContactsTitle: "Office Contacts",
+    allRightsReserved: "Tunisian Mycelium Biotech. Registered under Startup Act. All Rights Reserved.",
+    privacyCharter: "Privacy Charter",
+    technicalSpec: "Technical Spec",
+
+    // General placeholders
+    loadingText: "Initializing cleanroom workspace...",
+    emptyText: "No content available. Click to edit."
+  },
+  fr: {
+    // Navbar
+    navHome: "Accueil",
+    navAbout: "À Propos",
+    navProducts: "Produits & Services",
+    navContact: "Nous Contacter",
+    staffAccess: "Accès Staff",
+    adminConsole: "Console",
+    signOut: "Se Déconnecter",
+
+    // Home Page
+    certifiedQuality: "Qualité Certifiée",
+    certifiedQualityDesc: "Sélection de souches pures dans notre laboratoire stérile sous flux laminaire HEPA-14.",
+    localProduction: "Production Locale",
+    localProductionDesc: "Support de culture fabriqué à partir de céréales d'origine tunisienne de premier choix.",
+    bioMaterials: "Biomatériaux",
+    bioMaterialsDesc: "Développement d’emballages écologiques 100% biodégradables à base de mycélium et paille.",
+    setupAndConsulting: "Accompagnement",
+    setupAndConsultingDesc: "Service de conseil et installation d'unités de culture pour agriculteurs.",
+    whatWeDo: "Ce que nous faisons",
+    advancedBiologicalSolutions: "Solutions Biologiques Avancées pour l'Agriculture",
+    ecoCircularitySub: "Nous valorisons l'économie circulaire à travers des produits performant et éco-responsables.",
+    exploreCatalog: "Explorer le Catalogue",
+    contactUs: "Nous Contacter",
+
+    // Products / Services Page
+    catalogTitle: "Notre Catalogue de Spécialités",
+    catalogSubtitle: "Sélectionnez une catégorie ci-dessous pour filtrer nos produits et solutions.",
+    allCategories: "Toutes les catégories",
+    grainSpawnCategory: "Grain Spawn",
+    startingCulturesCategory: "Starting Cultures",
+    biomaterialCategory: "Bio-材料 (Biomatériaux)",
+    consultingCategory: "Consulting & Setup",
+    priceText: "Tarif",
+    statusText: "Disponibilité",
+    availableText: "Disponible",
+    outOfStockText: "En Rupture",
+    preOrderText: "Pre-order",
+    productionDateText: "Production",
+    expirationDateText: "Expiration",
+    originCertificateText: "Fiche d'Analyse / Certificat",
+    unknownDateText: "Non spécifié",
+    bindDocText: "Lier un Document",
+    noProductsText: "Aucun produit trouvé dans cette catégorie.",
+    viewFileText: "Consulter la fiche",
+
+    // About Page
+    whoAreWe: "Qui sommes-nous ?",
+    sciConvictions: "Notre équipe et nos convictions scientifiques circulaires.",
+    aboutStory: "Notre Histoire",
+    aboutMission: "Notre Mission",
+    aboutVision: "Notre Vision",
+    aboutTeam: "Notre Équipe",
+    aboutTeamDesc: "Découvrez les professionnels passionnés derrière Biotech Agro Tunisia.",
+    certificationsTitle: "Certifications & Normes de Qualité",
+    certificationsDesc: "Procédures d’hygiène et contrôles stricts garantissant un mycélium d'excellence.",
+    inactiveCertSection: "Aucune certification ajoutée pour le moment. L'administrateur peut en ajouter en direct.",
+    addTeamMember: "Ajouter un membre",
+    addCertification: "Ajouter une certification",
+
+    // Contact Page
+    contactTitle: "Nous Contacter",
+    contactSubtitle: "Des questions sur nos produits, un projet d'installation ou une demande de partenariat ?",
+    officeContacts: "Nos Bureaux",
+    sendAMessage: "Envoyez-nous un Message",
+    fullNameLabel: "Nom & Prénom",
+    emailLabel: "Adresse Email",
+    phoneLabel: "Numéro de Téléphone",
+    subjectLabel: "Sujet",
+    messageLabel: "Message et Détails",
+    sendMessageButton: "Envoyer le message",
+    sendingButton: "Envoi en cours...",
+    sendingSuccess: "Message envoyé avec succès !",
+    officeHoursLabel: "Heures d'ouverture",
+
+    // Footer
+    labIdLabel: "Identifiant Labo",
+    quickLinks: "Navigation Rapide",
+    regionalBases: "Implantations Régionales",
+    officeContactsTitle: "Secrétariat",
+    allRightsReserved: "Tunisian Mycelium Biotech. Enregistré sous le Startup Act Tunisien. Tous droits réservés.",
+    privacyCharter: "Charte de Confidentialité",
+    technicalSpec: "Fiche Technique",
+
+    // General placeholders
+    loadingText: "Initialisation de la console biologique...",
+    emptyText: "Contenu vide. Cliquez pour éditer."
+  },
+  ar: {
+    // Navbar
+    navHome: "الرئيسية",
+    navAbout: "من نحن",
+    navProducts: "المنتجات والخدمات",
+    navContact: "اتصل بنا",
+    staffAccess: "دخول الموظفين",
+    adminConsole: "لوحة التحكم",
+    signOut: "تسجيل الخروج",
+
+    // Home Page
+    certifiedQuality: "جودة معتمدة",
+    certifiedQualityDesc: "اختيار السلالات النقية تحت ظروف معقمة مطلقة وبأجهزة فلترة هواء HEPA stérile.",
+    localProduction: "إنتاج محلي",
+    localProductionDesc: "أبواغ حبوب فطرية مجهزة على حبوب حبوب تونسية أولية ممتازة.",
+    bioMaterials: "المواد الحيوية",
+    bioMaterialsDesc: "تطوير عبوات بيئية صديقة للبيئة قابلة للتحلل بنسبة 100٪ من الفطريات والقش.",
+    setupAndConsulting: "دعم واستشارات",
+    setupAndConsultingDesc: "استشارات النخبة ودعم الفنيين لتركيب غرف معقمة لإنتاج الفطر.",
+    whatWeDo: "ماذا نفعل",
+    advancedBiologicalSolutions: "حلول بيولوجية متقدمة من أجل الزراعة التونسية الدائرية",
+    ecoCircularitySub: "نحن نقوم بتدوير المنتجات الثانوية الزراعية لتعميم المسؤولية البيئية.",
+    exploreCatalog: "استكشاف الكتالوج",
+    contactUs: "اتصل بنا",
+
+    // Products / Services Page
+    catalogTitle: "كتالوج التخصصات الحيوية لدينا",
+    catalogSubtitle: "حدد فئة أدناه لتصفية أصول الفطريات المتوفرة والحلول الاستشارية المتقدمة.",
+    allCategories: "جميع الفئات",
+    grainSpawnCategory: "أبواغ الحبوب (Grain Spawn)",
+    startingCulturesCategory: "المستنبتات الأولية (Starting Cultures)",
+    biomaterialCategory: "المواد الحيوية",
+    consultingCategory: "الاستشارات وإعداد المشاريع",
+    priceText: "السعر",
+    statusText: "الحالة",
+    availableText: "متوفر",
+    outOfStockText: "نفذت الكمية",
+    preOrderText: "طلب مسبق",
+    productionDateText: "تاريخ الإنتاج",
+    expirationDateText: "تاريخ انتهاء الصلاحية",
+    originCertificateText: "شهادة التحليل / المنشأ",
+    unknownDateText: "غير محدد",
+    bindDocText: "ربط مستند",
+    noProductsText: "لم يتم العثور على منتجات في هذه الفئة.",
+    viewFileText: "عرض المستند",
+
+    // About Page
+    whoAreWe: "من نحن ؟",
+    sciConvictions: "فريقنا وقناعاتنا العلمية نحو الاقتصاد الدائري المستدام.",
+    aboutStory: "قصتنا العلمية",
+    aboutMission: "مهمتنا الأساسية",
+    aboutVision: "رؤيتنا الاستراتيجية",
+    aboutTeam: "فريق المبتكرين لدينا",
+    aboutTeamDesc: "اكتشف العلماء والمهندسين الشغوفين وراء شركة Biotech Agro تونس.",
+    certificationsTitle: "الشهادات الإدارية والمعايير الصحية",
+    certificationsDesc: "إجراءات تعقيم صارمة وتحليلات لضمان الجودة العالية والتتبع الكامل لكل دفعة.",
+    inactiveCertSection: "لا توجد شهادات مضافة حالياً. بمقدور المدير إضافتها مباشرة.",
+    addTeamMember: "إضافة عضو للفريق",
+    addCertification: "إضافة شهادة جديدة",
+
+    // Contact Page
+    contactTitle: "اتصل بنا",
+    contactSubtitle: "أسئلة حول كتالوجات الأبواغ، أو إعداد غرف التعقيم، أو الشراكات؟ أرسل لنا رسالة.",
+    officeContacts: "مكاتبنا",
+    sendAMessage: "أرسل لنا رسالة مباشرة",
+    fullNameLabel: "الاسم واللقب",
+    emailLabel: "البريد الإلكتروني",
+    phoneLabel: "رقم الهاتف",
+    subjectLabel: "الموضوع",
+    messageLabel: "تفاصيل الرسالة",
+    sendMessageButton: "إرسال الرسالة",
+    sendingButton: "جارٍ الإرسال الآن...",
+    sendingSuccess: "تم إرسال الرسالة بنجاح تام!",
+    officeHoursLabel: "ساعات العمل الرسمية",
+
+    // Footer
+    labIdLabel: "معرف المختبر",
+    quickLinks: "الوصول السريع",
+    regionalBases: "العمليات الإقليمية",
+    officeContactsTitle: "جهة الاتصال",
+    allRightsReserved: "بيوتك أغرو تونس. مسجلة تحت قانون المؤسسات الناشئة التونسية. جميع الحقوق محفوظة.",
+    privacyCharter: "ميثاق الخصوصية",
+    technicalSpec: "المواصفات الفنية",
+
+    // General placeholders
+    loadingText: "جارٍ تهيئة الغرفة المعقمة والمنصة الرقمية...",
+    emptyText: "المحتوى فارغ. اضغط للتعديل."
+  }
+};

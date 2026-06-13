@@ -1,0 +1,6 @@
+{
+  "name": "Tunisian Mycelium Biotech",
+  "description": "Custom full-stack web application for a Tunisian mycelium and grain spawn startup, featuring rich interactive displays and a secure content management admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
