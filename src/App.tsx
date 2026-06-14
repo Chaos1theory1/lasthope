@@ -979,9 +979,21 @@ export default function App() {
         if (showAlert) {
           alert(`Success: Website ${section} text saved securely.`);
         }
+      // src/App.tsx around line 980
       } else {
-        const errData = await response.json().catch(() => ({}));
-        const errMsg = errData.error || errData.message || "Verification failure. Check token validity.";
+        // ✅ HIGHLY IMPROVED ERROR AND STATUS LOGGING
+        let errMsg = `Server error ${response.status}.`;
+        try {
+          const errData = await response.json();
+          errMsg = errData.error || errData.message || errMsg;
+        } catch (_) {
+          try {
+            const errText = await response.text();
+            if (errText && errText.length < 200) {
+              errMsg = `${errMsg} Details: ${errText}`;
+            }
+          } catch (__) {}
+        }
         alert(`Error: ${errMsg}`);
       }
     } catch (err) {

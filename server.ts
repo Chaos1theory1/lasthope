@@ -659,11 +659,11 @@ app.put("/api/content/text", requireAdmin, (req, res) => {
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   if (section === "hero") {
-    db.siteContent.hero = { ...db.siteContent.hero, ...data };
+    db.siteContent.hero = { ...(db.siteContent.hero || {}), ...data };
   } else if (section === "about") {
-    db.siteContent.about = { ...db.siteContent.about, ...data };
+    db.siteContent.about = { ...(db.siteContent.about || {}), ...data };
   } else if (section === "contact") {
-    db.siteContent.contactDetails = { ...db.siteContent.contactDetails, ...data };
+    db.siteContent.contactDetails = { ...(db.siteContent.contactDetails || {}), ...data };
   } else if (section === "features") {
     db.siteContent.features = data;
   } else if (section === "logo") {
@@ -680,8 +680,7 @@ app.put("/api/content/text", requireAdmin, (req, res) => {
     db.siteContent.certifications = data;
   } else {
     return res.status(400).json({ error: "Invalid text section identifier." });
-  }
-
+}
   saveDBState(db);
   res.json({ success: true, content: db.siteContent });
 });
