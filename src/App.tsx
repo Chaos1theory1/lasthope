@@ -1676,7 +1676,7 @@ const handleImageUpload = async (
             
             {/* Elegant Hero Banner */}
             <section
-  className="relative isolate overflow-hidden bg-transparent pt-20 pb-16 px-4 sm:px-6 lg:px-8 border-b border-stone-200/50"
+  className="relative isolate overflow-hidden bg-[#fcfcf9] pt-20 pb-16 px-4 sm:px-6 lg:px-8 border-b border-stone-200/50"
 >
   <div
     className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat opacity-100"
