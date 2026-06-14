@@ -334,9 +334,34 @@ function getLocalizedValue(
     return fallbackDefault;
   }
   const langKey = `${key}_${currentLanguage}`;
-  if (sectionObj[langKey] !== undefined && sectionObj[langKey] !== null && sectionObj[langKey] !== "") {
-    return sectionObj[langKey];
+const localizedValue = sectionObj[langKey];
+
+if (localizedValue !== undefined && localizedValue !== null && localizedValue !== "") {
+  const baseValue = sectionObj[key] || "";
+
+  const looksLikeCopiedEnglishBase =
+    currentLanguage !== "en" &&
+    typeof localizedValue === "string" &&
+    typeof baseValue === "string" &&
+    localizedValue.trim().toLowerCase() === baseValue.trim().toLowerCase();
+
+  if (!looksLikeCopiedEnglishBase) {
+    return localizedValue;
   }
+
+  if (currentLanguage !== "en" && DEFAULT_FALLBACKS[currentLanguage]) {
+    if (sectionKey) {
+      const scopedKey = `${sectionKey}_${key}`;
+      if (DEFAULT_FALLBACKS[currentLanguage][scopedKey] !== undefined) {
+        return DEFAULT_FALLBACKS[currentLanguage][scopedKey];
+      }
+    }
+
+    if (DEFAULT_FALLBACKS[currentLanguage][key] !== undefined) {
+      return DEFAULT_FALLBACKS[currentLanguage][key];
+    }
+  }
+}
   
   if (currentLanguage !== "en" && DEFAULT_FALLBACKS[currentLanguage]) {
     if (sectionKey) {
