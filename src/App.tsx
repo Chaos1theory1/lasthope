@@ -5014,11 +5014,25 @@ const handleImageUpload = async (
                               accept="image/*"
                               onChange={async (e) => {
                                 if (e.target.files?.[0]) {
-                                  handleImageUpload(
-  e.target.files[0],
-  (url) => setServiceForm((prev) => ({ ...prev, image: url })),
-  "services"
-);
+                                  const file = e.target.files?.[0];
+
+if (file) {
+  setIsServiceImageUploading(true);
+
+  handleImageUpload(
+    file,
+    (url) => {
+      setServiceForm((prev) => ({ ...prev, image: url }));
+    },
+    "services"
+  )
+    .catch(() => {
+      setServiceForm((prev) => ({ ...prev, image: prev.image || "" }));
+    })
+    .finally(() => {
+      setIsServiceImageUploading(false);
+    });
+}
                                 }
                               }}
                               className="w-full bg-stone-100 border border-stone-305 text-[10px] p-1 rounded"
