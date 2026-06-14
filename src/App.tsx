@@ -4724,12 +4724,7 @@ const handleImageUpload = async (
                               <label className="text-xs font-semibold text-stone-700 block">Pasted Image URL</label>
                               <input
                                 type="text"
-                                value={<input
-  type="url"
-  value={productForm.image}
-  onChange={(e) => setProductForm((prev) => ({ ...prev, image: e.target.value }))}
-  placeholder="https://example.com/image.jpg"
-/> || ""}
+                                value={productForm.image || ""}
                                 onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
                                 className="w-full bg-white border border-stone-250 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
                               />
