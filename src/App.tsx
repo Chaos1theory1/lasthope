@@ -5032,7 +5032,11 @@ if (file) {
     .finally(() => {
       setIsServiceImageUploading(false);
     });
-}
+}{isServiceImageUploading && (
+  <p className="text-[10px] text-emerald-700 font-semibold">
+    Uploading service image to Vercel Blob... please wait before saving.
+  </p>
+)}
                                 }
                               }}
                               className="w-full bg-stone-100 border border-stone-305 text-[10px] p-1 rounded"
