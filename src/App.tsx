@@ -379,8 +379,6 @@ function getProductLocalizedValue(
 }
 
 // Inline image asset editor for admin live image changes
-
-
 // Inline image asset editor for admin live image changes
 function EditableImage({
   src,
@@ -609,7 +607,6 @@ function EditableImage({
     </div>
   );
 }
-
 
 const defaultTeamFallbacks: TeamMember[] = [
   {
@@ -1406,7 +1403,7 @@ const uploadFileToBlob = async (
     throw new Error("Image is too large. Please upload an image smaller than 3 MB.");
   }
 
-   const originalDataUrl = await new Promise<string>((resolve, reject) => {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
 
     reader.readAsDataURL(file);
@@ -1421,30 +1418,6 @@ const uploadFileToBlob = async (
 
     reader.onerror = () => reject(new Error("Could not read image file."));
   });
-
-  const dataUrl = maxDim > 0 ? await resizeImage(originalDataUrl, maxDim) : originalDataUrl;
-
-  const response = await fetch("/api/media/upload", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`
-    },
-    body: JSON.stringify({
-      dataUrl,
-      filename: file.name,
-      folder
-    })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || "Image upload failed.");
-  }
-
-  return data.url;
-};
 
   const response = await fetch("/api/media/upload", {
     method: "POST",
@@ -1476,11 +1449,9 @@ const handleImageUpload = async (
   try {
     const url = await uploadFileToBlob(file, folder, 1200);
     callback(url);
-    return url;
   } catch (error: any) {
     console.error("Image upload failed:", error);
     alert(error.message || "Image upload failed.");
-    throw error;
   }
 };
 
@@ -1789,15 +1760,13 @@ const handleImageUpload = async (
                   {siteContent.about.choosePhaseImage1 ? (
                     <div className="absolute inset-0 w-full h-full group z-10 bg-white">
                       <EditableImage
-  src={siteContent.about.choosePhaseImage1}
-  onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage1: newImg }, false)}
-  isAdmin={isAdminLoggedIn}
-  maxDim={800}
-  uploadImage={uploadFileToBlob}
-  blobFolder="home"
-  className="w-full h-full object-cover"
-  alt="Custom image upload card"
-/>
+                        src={siteContent.about.choosePhaseImage1}
+                        onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage1: newImg }, false)}
+                        isAdmin={isAdminLoggedIn}
+                        maxDim={800}
+                        className="w-full h-full object-cover"
+                        alt="Custom image upload card"
+                      />
                       {isAdminLoggedIn && (
                         <button
                           type="button"
@@ -1908,16 +1877,14 @@ const handleImageUpload = async (
                 <div className="p-6 bg-white border border-stone-150 rounded-2xl shadow-2xs hover:shadow-xs transition-all relative overflow-hidden flex flex-col justify-between min-h-[220px]">
                   {siteContent.about.choosePhaseImage2 ? (
                     <div className="absolute inset-0 w-full h-full group z-10 bg-white">
-                     <EditableImage
-  src={siteContent.about.choosePhaseImage2}
-  onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage2: newImg }, false)}
-  isAdmin={isAdminLoggedIn}
-  maxDim={800}
-  uploadImage={uploadFileToBlob}
-  blobFolder="home"
-  className="w-full h-full object-cover"
-  alt="Custom image upload card"
-/>
+                      <EditableImage
+                        src={siteContent.about.choosePhaseImage2}
+                        onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage2: newImg }, false)}
+                        isAdmin={isAdminLoggedIn}
+                        maxDim={800}
+                        className="w-full h-full object-cover"
+                        alt="Custom image upload card"
+                      />
                       {isAdminLoggedIn && (
                         <button
                           type="button"
@@ -2028,16 +1995,14 @@ const handleImageUpload = async (
                 <div className="p-6 bg-white border border-stone-150 rounded-2xl shadow-2xs hover:shadow-xs transition-all relative overflow-hidden flex flex-col justify-between min-h-[220px]">
                   {siteContent.about.choosePhaseImage3 ? (
                     <div className="absolute inset-0 w-full h-full group z-10 bg-white">
-                     <EditableImage
-  src={siteContent.about.choosePhaseImage3}
-  onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage3: newImg }, false)}
-  isAdmin={isAdminLoggedIn}
-  maxDim={800}
-  uploadImage={uploadFileToBlob}
-  blobFolder="home"
-  className="w-full h-full object-cover"
-  alt="Custom image upload card"
-/>
+                      <EditableImage
+                        src={siteContent.about.choosePhaseImage3}
+                        onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage3: newImg }, false)}
+                        isAdmin={isAdminLoggedIn}
+                        maxDim={800}
+                        className="w-full h-full object-cover"
+                        alt="Custom image upload card"
+                      />
                       {isAdminLoggedIn && (
                         <button
                           type="button"
@@ -2148,16 +2113,14 @@ const handleImageUpload = async (
                 <div className="p-6 bg-white border border-stone-150 rounded-2xl shadow-2xs hover:shadow-xs transition-all relative overflow-hidden flex flex-col justify-between min-h-[220px]">
                   {siteContent.about.choosePhaseImage4 ? (
                     <div className="absolute inset-0 w-full h-full group z-10 bg-white">
-                     <EditableImage
-  src={siteContent.about.choosePhaseImage4}
-  onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage4: newImg }, false)}
-  isAdmin={isAdminLoggedIn}
-  maxDim={800}
-  uploadImage={uploadFileToBlob}
-  blobFolder="home"
-  className="w-full h-full object-cover"
-  alt="Custom image upload card"
-/>
+                      <EditableImage
+                        src={siteContent.about.choosePhaseImage4}
+                        onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage4: newImg }, false)}
+                        isAdmin={isAdminLoggedIn}
+                        maxDim={800}
+                        className="w-full h-full object-cover"
+                        alt="Custom image upload card"
+                      />
                       {isAdminLoggedIn && (
                         <button
                           type="button"
@@ -2341,16 +2304,13 @@ const handleImageUpload = async (
 
                 {siteContent.about.biotechImage ? (
                   <div className="w-full relative rounded-2xl overflow-hidden group min-h-[300px]">
-                   <EditableImage
-  src={siteContent.about.biotechImage}
-  onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, biotechImage: newImg }, false)}
-  isAdmin={isAdminLoggedIn}
-  maxDim={1200}
-  uploadImage={uploadFileToBlob}
-  blobFolder="about"
-  className="w-full h-full max-h-[600px] object-cover rounded-2xl"
-  alt="Biotechnology Process Diagram"
-/>
+                    <EditableImage
+                      src={siteContent.about.biotechImage}
+                      onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, biotechImage: newImg }, false)}
+                      isAdmin={isAdminLoggedIn}
+                      className="w-full h-full max-h-[600px] object-cover rounded-2xl"
+                      alt="Biotechnology Process Diagram"
+                    />
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -2910,8 +2870,6 @@ const handleImageUpload = async (
                   }}
                   isAdmin={isAdminLoggedIn}
                   maxDim={600}
-                  uploadImage={uploadFileToBlob}
-blobFolder="about"
                   className="h-full w-full object-contain rounded-2xl"
                 />
               </div>
@@ -2941,15 +2899,12 @@ blobFolder="about"
                 {siteContent.about.missionImage ? (
                   <div className="w-full h-full min-h-[160px] rounded-xl overflow-hidden">
                     <EditableImage
-  src={siteContent.about.missionImage}
-  onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, missionImage: newImg }, false)}
-  isAdmin={isAdminLoggedIn}
-  maxDim={800}
-  uploadImage={uploadFileToBlob}
-  blobFolder="about"
-  className="w-full h-full object-cover rounded-xl"
-  alt="Mission Graphics"
-/>
+                      src={siteContent.about.missionImage}
+                      onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, missionImage: newImg }, false)}
+                      isAdmin={isAdminLoggedIn}
+                      className="w-full h-full object-cover rounded-xl"
+                      alt="Mission Graphics"
+                    />
                   </div>
                 ) : (
                   <>
@@ -3053,15 +3008,12 @@ blobFolder="about"
                 {siteContent.about.visionImage ? (
                   <div className="w-full h-full min-h-[160px] rounded-xl overflow-hidden">
                     <EditableImage
-  src={siteContent.about.visionImage}
-  onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, visionImage: newImg }, false)}
-  isAdmin={isAdminLoggedIn}
-  maxDim={800}
-  uploadImage={uploadFileToBlob}
-  blobFolder="about"
-  className="w-full h-full object-cover rounded-xl"
-  alt="Vision Graphics"
-/>
+                      src={siteContent.about.visionImage}
+                      onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, visionImage: newImg }, false)}
+                      isAdmin={isAdminLoggedIn}
+                      className="w-full h-full object-cover rounded-xl"
+                      alt="Vision Graphics"
+                    />
                   </div>
                 ) : (
                   <>
@@ -3194,15 +3146,12 @@ blobFolder="about"
                     )}
                     <div className="w-32 h-32 rounded-full overflow-hidden border border-stone-200/80 shadow-inner">
                       <EditableImage
-  src={member.image || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300"}
-  onSave={(newImg) => handleUpdateTeamMember(member.id, { image: newImg })}
-  isAdmin={isAdminLoggedIn}
-  maxDim={600}
-  uploadImage={uploadFileToBlob}
-  blobFolder="team"
-  className="w-full h-full object-cover"
-  alt={member.name}
-/>
+                        src={member.image || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300"}
+                        onSave={(newImg) => handleUpdateTeamMember(member.id, { image: newImg })}
+                        isAdmin={isAdminLoggedIn}
+                        className="w-full h-full object-cover"
+                        alt={member.name}
+                      />
                     </div>
                     <div className="space-y-1">
                       <h3 className="font-display font-medium text-lg text-stone-900 leading-tight">
@@ -3281,15 +3230,12 @@ blobFolder="about"
                         )}
                         <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border border-stone-200 flex items-center justify-center p-2 mb-1">
                           <EditableImage
-  src={cert.image || "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=150"}
-  onSave={(newImg) => handleUpdateCertification(cert.id, { image: newImg })}
-  isAdmin={isAdminLoggedIn}
-  maxDim={400}
-  uploadImage={uploadFileToBlob}
-  blobFolder="certifications"
-  className="max-h-full max-w-full object-contain"
-  alt={cert.title}
-/>
+                            src={cert.image || "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=150"}
+                            onSave={(newImg) => handleUpdateCertification(cert.id, { image: newImg })}
+                            isAdmin={isAdminLoggedIn}
+                            className="max-h-full max-w-full object-contain"
+                            alt={cert.title}
+                          />
                         </div>
                         <h3 className="font-display font-semibold text-sm text-stone-900 leading-tight">
                           <EditableText
