@@ -5010,36 +5010,19 @@ const handleImageUpload = async (
                           <div className="space-y-1">
                             <label className="text-xs font-semibold text-stone-700 block uppercase">NATIVE PICTURE FILE UPLOAD</label>
                             <input
-  type="file"
-  accept="image/*"
-  onChange={(e) => {
-    const file = e.target.files?.[0];
-
-    if (file) {
-      setIsServiceImageUploading(true);
-
-      handleImageUpload(
-        file,
-        (url) => {
-          setServiceForm((prev) => ({ ...prev, image: url }));
-        },
-        "services"
-      )
-        .catch(() => {
-          setServiceForm((prev) => ({ ...prev, image: prev.image || "" }));
-        })
-        .finally(() => {
-          setIsServiceImageUploading(false);
-        });
-    }
-  }}
-  className="w-full bg-stone-100 border border-stone-300 rounded-lg text-[10px] p-1"
-/>
-{isServiceImageUploading && (
-  <p className="text-[10px] text-emerald-700 font-semibold">
-    Uploading service image to dabatase... please wait before saving.
-  </p>
-)}
+                              type="file"
+                              accept="image/*"
+                              onChange={async (e) => {
+                                if (e.target.files?.[0]) {
+                                  handleImageUpload(
+  e.target.files[0],
+  (url) => setServiceForm((prev) => ({ ...prev, image: url })),
+  "services"
+);
+                                }
+                              }}
+                              className="w-full bg-stone-100 border border-stone-305 text-[10px] p-1 rounded"
+                            />
                           </div>
 
                           {/* Benefits list editing */}
