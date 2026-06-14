@@ -5033,22 +5033,10 @@ if (file) {
       setIsServiceImageUploading(false);
     });
 }
-}}
-              className="w-full bg-stone-100 border border-stone-305 text-[10px] p-1 rounded"
-              />
-              
-{isServiceImageUploading && (
-  <p className="text-[10px] text-emerald-700 font-semibold">
-    Uploading service image to Vercel Blob... please wait before saving.
-  </p>
-)}{serviceForm.image && (
-  <p className="text-[10px] text-stone-500 break-all">
-    Current image URL: {serviceForm.image}
-  </p>
-)}
                                 }
-                              
-                            
+                              }}
+                              className="w-full bg-stone-100 border border-stone-305 text-[10px] p-1 rounded"
+                            />
                           </div>
 
                           {/* Benefits list editing */}
