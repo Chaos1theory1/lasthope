@@ -178,10 +178,12 @@ const DEFAULT_FALLBACKS: Record<string, Record<string, string>> = {
   ar: {
     // Hero
     badge: "رائد التكنلوجيا الحيوية بتونس",
-    title: "زراعة الإمكانات اللامتناهية للأبواغ الفطرية",
-    subtitle: "نحن نقوم بتدوير المنتجات الثانوية الزراعية التونسية - مثل قشور الزيتون وحبوب القمح - إلى أبواغ فطرية ممتازة ومواد حيوية قابلة للتحلل. تمكين المزارعين الإقليميين ودفع الاقتصاد الدائري.",
-    primaryCta: "اكتشف منتجاتنا",
-    secondaryCta: "احجز استشارة",
+title: "زراعة الإمكانات اللامتناهية للأبواغ الفطرية",
+subtitle: "نحن نقوم بتدوير المنتجات الثانوية الزراعية التونسية - مثل قشور الزيتون وحبوب القمح - إلى أبواغ فطرية ممتازة ومواد حيوية قابلة للتحلل. تمكين المزارعين الإقليميين ودفع الاقتصاد الدائري.",
+hero_title: "زراعة الإمكانات اللامتناهية للأبواغ الفطرية",
+hero_subtitle: "نحن نقوم بتدوير المنتجات الثانوية الزراعية التونسية - مثل قشور الزيتون وحبوب القمح - إلى أبواغ فطرية ممتازة ومواد حيوية قابلة للتحلل. تمكين المزارعين الإقليميين ودفع الاقتصاد الدائري.",
+primaryCta: "اكتشف منتجاتنا",
+secondaryCta: "احجز استشارة",
     // About / Choose Section
     chooseTitle: "لماذا يختار المزارعون بيوتك أغرو",
     chooseSubtitle: "تجمع بيوتك أغرو بين التكنولوجيا الحيوية ومراقبة الجودة والأدوات الرقمية لتقديم حل متكامل لإنتاج الأبواغ الفطرية المصممة خصيصاً للأسواق التونسية والأفريقية.",
@@ -240,11 +242,13 @@ const DEFAULT_FALLBACKS: Record<string, Record<string, string>> = {
   },
   fr: {
     // Hero
-    badge: "PIONNIER DE LA BIOTECH EN TUNISIE",
-    title: "Cultiver le potentiel infini du mycélium",
-    subtitle: "Nous valorisons les co-produits agricoles tunisiens—comme les coques d'olives et les grains de blé—en blanc de semis de qualité supérieure et en biomatériaux compostables. Autonomiser les producteurs régionaux.",
-    primaryCta: "Découvrir Nos Produits",
-    secondaryCta: "Réserver un Conseil",
+   badge: "PIONNIER DE LA BIOTECH EN TUNISIE",
+title: "Cultiver le potentiel infini du mycélium",
+subtitle: "Nous valorisons les co-produits agricoles tunisiens—comme les coques d'olives et les grains de blé—en blanc de semis de qualité supérieure et en biomatériaux compostables. Autonomiser les producteurs régionaux.",
+hero_title: "Cultiver le potentiel infini du mycélium",
+hero_subtitle: "Nous valorisons les co-produits agricoles tunisiens—comme les coques d'olives et les grains de blé—en blanc de semis de qualité supérieure et en biomatériaux compostables. Autonomiser les producteurs régionaux.",
+primaryCta: "Découvrir Nos Produits",
+secondaryCta: "Réserver un Conseil",
     // About / Choose Section
     chooseTitle: "Pourquoi les producteurs choisissent Biotech Agro",
     chooseSubtitle: "Biotech Agro associe la biotechnologie, le contrôle qualité et le digital pour offrir une solution complète de production de mycélium sur les marchés tunisien et africain.",
@@ -1885,7 +1889,7 @@ const handleUploadHeroBackground = async (file: File) => {
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100/80 border border-emerald-200 text-emerald-800 rounded-full text-[11px] font-mono font-bold tracking-widest uppercase">
                   <Sparkles className="w-3 h-3 text-emerald-700 animate-spin-slow" />
                   <EditableText
-                    value={getLocalizedValue(siteContent.hero, "badge", currentLanguage, "Tunisian Advanced Myco-Lab")}
+                    value={getLocalizedValue(siteContent.hero, "badge", currentLanguage, "Tunisian Advanced Myco-Lab", "hero")}
                     onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, badge: val, [`badge_${currentLanguage}`]: val }, false)}
                     isAdmin={isAdminLoggedIn}
                   />
@@ -1893,7 +1897,7 @@ const handleUploadHeroBackground = async (file: File) => {
 
                 <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-stone-900 leading-[1.1]">
                   <EditableText
-                    value={getLocalizedValue(siteContent.hero, "title", currentLanguage, "Unlocking the Organic Power of Pure Mushroom Spawn")}
+                    value={getLocalizedValue(siteContent.hero, "title", currentLanguage, "Unlocking the Organic Power of Pure Mushroom Spawn", "hero")}
                     onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, title: val, [`title_${currentLanguage}`]: val }, false)}
                     isAdmin={isAdminLoggedIn}
                     multiline={true}
@@ -1902,7 +1906,7 @@ const handleUploadHeroBackground = async (file: File) => {
 
                 <p className="text-stone-600 text-lg sm:text-xl font-light leading-relaxed max-w-2xl mx-auto">
                   <EditableText
-                    value={getLocalizedValue(siteContent.hero, "subtitle", currentLanguage, "Certified pure strain inoculants & eco-packaging substrates grown locally in Tunisia under elite aseptic standards.")}
+                    value={getLocalizedValue(siteContent.hero, "subtitle", currentLanguage, "Certified pure strain inoculants & eco-packaging substrates grown locally in Tunisia under elite aseptic standards.", "hero")}
                     onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, subtitle: val, [`subtitle_${currentLanguage}`]: val }, false)}
                     isAdmin={isAdminLoggedIn}
                     multiline={true}
@@ -1915,7 +1919,7 @@ const handleUploadHeroBackground = async (file: File) => {
                     className="px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-sm font-semibold tracking-wide transition-all shadow-md hover:translate-y-[-1px] cursor-pointer"
                   >
                     <EditableText
-                      value={getLocalizedValue(siteContent.hero, "primaryCta", currentLanguage, "Explore Catalogs")}
+                      value={getLocalizedValue(siteContent.hero, "primaryCta", currentLanguage, "Explore Catalogs", "hero")}
                       onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, primaryCta: val, [`primaryCta_${currentLanguage}`]: val }, false)}
                       isAdmin={isAdminLoggedIn}
                     />
@@ -1925,7 +1929,7 @@ const handleUploadHeroBackground = async (file: File) => {
                     className="px-6 py-3 bg-white hover:bg-stone-50 text-stone-800 border border-stone-200 rounded-xl text-sm font-semibold tracking-wide transition-all cursor-pointer"
                   >
                     <EditableText
-                      value={getLocalizedValue(siteContent.hero, "secondaryCta", currentLanguage, "Inquire Live")}
+                      value={getLocalizedValue(siteContent.hero, "secondaryCta", currentLanguage, "Inquire Live", "hero")}
                       onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, secondaryCta: val, [`secondaryCta_${currentLanguage}`]: val }, false)}
                       isAdmin={isAdminLoggedIn}
                     />
