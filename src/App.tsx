@@ -4759,6 +4759,17 @@ const handleImageUpload = async (
   }}
   className="w-full bg-stone-100 border border-stone-300 rounded-lg text-[10px] p-1"
 />
+{isProductImageUploading && (
+  <p className="text-[10px] text-emerald-700 font-semibold">
+    Uploading image database... please wait before saving.
+  </p>
+)}
+
+{productForm.image && (
+  <p className="text-[10px] text-stone-500 break-all">
+    Current image URL: {productForm.image}
+  </p>
+)}
                             </div>
                           </div>
 
