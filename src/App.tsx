@@ -4098,18 +4098,18 @@ const handleImageUpload = async (
                               setIsDraggingLogo(true);
                             }}
                             onDragLeave={() => setIsDraggingLogo(false)}
-                            onDrop={(e) => {
+                            onDrop={async (e) => {
                               e.preventDefault();
                               setIsDraggingLogo(false);
                               const file = e.dataTransfer.files?.[0];
                               if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  const base64String = reader.result as string;
-                                  setLogoUrlInput(base64String);
-                                  handleUpdateTextSection("logo", { logoUrl: base64String });
-                                };
-                                reader.readAsDataURL(file);
+                                try {
+  const url = await uploadFileToBlob(file, "logos", 800);
+  setLogoUrlInput(url);
+  handleUpdateTextSection("logo", { logoUrl: url });
+} catch (error: any) {
+  alert(error.message || "Logo upload failed.");
+}
                               }
                             }}
                             className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer select-none ${
@@ -4127,16 +4127,16 @@ const handleImageUpload = async (
                               id="logo-file-input"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => {
-                                    const base64String = reader.result as string;
-                                    setLogoUrlInput(base64String);
-                                    handleUpdateTextSection("logo", { logoUrl: base64String });
-                                  };
-                                  reader.readAsDataURL(file);
+                                  try {
+  const url = await uploadFileToBlob(file, "logos", 800);
+  setLogoUrlInput(url);
+  handleUpdateTextSection("logo", { logoUrl: url });
+} catch (error: any) {
+  alert(error.message || "Logo upload failed.");
+}
                                 }
                               }}
                             />
@@ -4724,7 +4724,12 @@ const handleImageUpload = async (
                               <label className="text-xs font-semibold text-stone-700 block">Pasted Image URL</label>
                               <input
                                 type="text"
-                                value={productForm.image || ""}
+                                value={<input
+  type="url"
+  value={productForm.image}
+  onChange={(e) => setProductForm((prev) => ({ ...prev, image: e.target.value }))}
+  placeholder="https://example.com/image.jpg"
+/> || ""}
                                 onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
                                 className="w-full bg-white border border-stone-250 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
                               />
@@ -4990,7 +4995,11 @@ const handleImageUpload = async (
                               accept="image/*"
                               onChange={(e) => {
                                 if (e.target.files?.[0]) {
-                                  handleImageUpload(e.target.files[0], (b64) => setServiceForm({ ...serviceForm, image: b64 }));
+                                  handleImageUpload(
+  e.target.files[0],
+  (url) => setServiceForm((prev) => ({ ...prev, image: url })),
+  "services"
+);
                                 }
                               }}
                               className="w-full bg-stone-100 border border-stone-305 text-[10px] p-1 rounded"
