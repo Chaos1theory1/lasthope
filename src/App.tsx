@@ -1675,7 +1675,18 @@ const handleImageUpload = async (
           <div className="space-y-16">
             
             {/* Elegant Hero Banner */}
-            <section className="relative overflow-hidden bg-gradient-to-b from-stone-100 to-[#fcfcf9] pt-20 pb-16 px-4 sm:px-6 lg:px-8 border-b border-stone-200/50">
+            <section
+  className="relative isolate overflow-hidden bg-[#fcfcf9] pt-20 pb-16 px-4 sm:px-6 lg:px-8 border-b border-stone-200/50"
+>
+  <div
+    className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat opacity-100"
+    style={{
+      backgroundImage: "url('https://qmkmhcvaeof6jfya.public.blob.vercel-storage.com/content/backgroundhome.png')"
+    }}
+  />
+
+  <div className="absolute inset-0 -z-10 bg-white/55" />
+  <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white/70 via-white/45 to-[#fcfcf9]/90" />
               <div className="absolute inset-0 pointer-events-none opacity-20">
                 <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-emerald-300 rounded-full blur-3xl" />
                 <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-stone-300 rounded-full blur-3xl animate-pulse-slow" />
