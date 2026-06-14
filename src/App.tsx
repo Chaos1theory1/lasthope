@@ -1762,10 +1762,119 @@ const handleUploadHeroBackground = async (file: File) => {
 />
 
 
-
-
   <div className="absolute inset-0 -z-10 bg-white/25" />
 <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white/35 via-white/15 to-[#fcfcf9]/55" />
+{isAdminLoggedIn && (
+    <button
+      type="button"
+      onClick={() => {
+        setHeroBgUrlInput(getHeroBackgroundImage());
+        setIsHeroBgPanelOpen(true);
+      }}
+      className="absolute top-4 right-4 z-20 rounded-full bg-white/90 border border-emerald-200 px-4 py-2 text-[11px] font-bold text-emerald-900 shadow-lg hover:bg-emerald-50 flex items-center gap-2"
+    >
+      <UploadCloud size={14} />
+      Change Hero Background
+    </button>
+  )}
+
+  {isHeroBgPanelOpen && (
+  <div
+    className="fixed inset-0 z-[100] bg-stone-950/60 flex items-center justify-center p-4"
+    onClick={() => {
+      if (!isHeroBgUploading) {
+        setIsHeroBgPanelOpen(false);
+      }
+    }}
+  >
+    <div
+      className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-stone-200 p-5 space-y-4 text-start"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-bold text-stone-900">
+            Change Home Background
+          </h3>
+          <p className="text-xs text-stone-500 mt-1">
+            Upload a new background to database, or paste an external image URL.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (!isHeroBgUploading) {
+              setIsHeroBgPanelOpen(false);
+            }
+          }}
+          className="p-1 rounded-lg hover:bg-stone-100 text-stone-500"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="border border-stone-200 rounded-xl p-4 space-y-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">
+          Option 1 — Upload from device
+        </p>
+
+        <input
+          type="file"
+          accept="image/*"
+          disabled={isHeroBgUploading}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+
+            if (file) {
+              handleUploadHeroBackground(file);
+            }
+          }}
+          className="w-full rounded-lg border border-stone-250 bg-white px-3 py-2 text-xs text-stone-800"
+        />
+
+        {isHeroBgUploading && (
+          <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-2">
+            <Loader2 size={12} className="animate-spin" />
+            Uploading background to database...
+          </p>
+        )}
+
+        <p className="text-[10px] text-stone-400">
+          Recommended: wide image, JPG/PNG/WebP, under 3 MB.
+        </p>
+      </div>
+
+      <div className="border border-stone-200 rounded-xl p-4 space-y-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">
+          Option 2 — Use image URL
+        </p>
+
+        <input
+          type="url"
+          value={heroBgUrlInput}
+          onChange={(e) => setHeroBgUrlInput(e.target.value)}
+          placeholder="https://example.com/background.jpg"
+          className="w-full rounded-lg border border-stone-250 bg-white px-3 py-2 text-xs text-stone-800 outline-none focus:border-emerald-500"
+        />
+
+        <button
+          type="button"
+          onClick={handleSaveHeroBackgroundUrl}
+          disabled={isHeroBgUploading}
+          className="w-full rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold py-3 flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          <Check size={15} />
+          Save URL
+        </button>
+
+        <p className="text-[10px] text-stone-400 break-all">
+          Current: {getHeroBackgroundImage()}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
               <div className="absolute inset-0 pointer-events-none opacity-20">
                 <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-emerald-300 rounded-full blur-3xl" />
                 <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-stone-300 rounded-full blur-3xl animate-pulse-slow" />
