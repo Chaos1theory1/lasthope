@@ -438,7 +438,7 @@ function EditableImage({
 const defaultTeamFallbacks: TeamMember[] = [
   {
     id: "team_1",
-    name: "Ali Basly",
+    name: "Ali",
     role: "Fondateur & analyste en systèmes d’information",
     bio: "Concepteur de la plateforme interne BiotechAgro dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, du business plan, des protocoles de production et du développement du site et de l’application interne.",
     image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=300"
