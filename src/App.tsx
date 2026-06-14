@@ -4988,7 +4988,7 @@ const handleImageUpload = async (
                             <input
                               type="file"
                               accept="image/*"
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 if (e.target.files?.[0]) {
                                   handleImageUpload(
   e.target.files[0],

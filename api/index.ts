@@ -6,23 +6,26 @@ import fs from "fs";
 import crypto from "crypto";
 import { GoogleGenAI } from "@google/genai";
 import nodemailer from "nodemailer";
-import { put } from "@vercel/blob";
+import { put, get } from "@vercel/blob";
 
 const app = express();
 // Middleware to parse huge JSON bodies (for user base64 photo uploads up to 20MB)
 app.use(express.json({ limit: "4mb" }));
 
 // Resolve paths
-// Vercel serverless functions cannot persist writes inside the deployed source tree.
-// We seed a temporary writable DB from src/db/db.json so the API works on Vercel.
-// Note: changes made from the admin panel may reset after serverless cold starts/redeploys.
+// Local file is still used as the seed/fallback.
+// On Vercel, public website data is persisted in Vercel Blob.
 const SOURCE_DB_PATH = path.join(process.cwd(), "src", "db", "db.json");
 const WRITABLE_DB_PATH = process.env.VERCEL ? "/tmp/biotechagro-db.json" : SOURCE_DB_PATH;
+const PUBLIC_DATA_BLOB_PATH = "data/public-content.json";
 const SESSION_SECRET = process.env.SESSION_SECRET || "mycotunisia_secret_session_2026";
+
+let publicDataCache: any | null = null;
 
 function ensureWritableDB() {
   try {
     if (!fs.existsSync(WRITABLE_DB_PATH) && fs.existsSync(SOURCE_DB_PATH)) {
+      fs.mkdirSync(path.dirname(WRITABLE_DB_PATH), { recursive: true });
       fs.copyFileSync(SOURCE_DB_PATH, WRITABLE_DB_PATH);
     }
   } catch (error) {
@@ -30,30 +33,125 @@ function ensureWritableDB() {
   }
 }
 
-// Helpers to read and write database
-function getDBState() {
+function readLocalDBState() {
   try {
     ensureWritableDB();
+
     const dbPath = fs.existsSync(WRITABLE_DB_PATH) ? WRITABLE_DB_PATH : SOURCE_DB_PATH;
+
     if (fs.existsSync(dbPath)) {
       const crude = fs.readFileSync(dbPath, "utf-8");
       return JSON.parse(crude);
     }
   } catch (error) {
-    console.error("Failed to read JSON DB:", error);
+    console.error("Failed to read local JSON DB:", error);
   }
+
   return null;
 }
 
-function saveDBState(data: any) {
+function extractPublicWebsiteData(db: any) {
+  return {
+    siteContent: db?.siteContent || {},
+    products: Array.isArray(db?.products) ? db.products : [],
+    services: Array.isArray(db?.services) ? db.services : []
+  };
+}
+
+function mergePublicWebsiteData(baseDb: any, publicData: any) {
+  return {
+    ...baseDb,
+    siteContent: publicData?.siteContent || baseDb?.siteContent || {},
+    products: Array.isArray(publicData?.products) ? publicData.products : baseDb?.products || [],
+    services: Array.isArray(publicData?.services) ? publicData.services : baseDb?.services || []
+  };
+}
+
+async function readPublicWebsiteDataFromBlob() {
+  try {
+    if (publicDataCache) {
+      return publicDataCache;
+    }
+
+    const result = await get(PUBLIC_DATA_BLOB_PATH, { access: "public" });
+
+    if (!result || result.statusCode !== 200 || !result.stream) {
+      return null;
+    }
+
+    const text = await new Response(result.stream).text();
+    const parsed = JSON.parse(text);
+
+    publicDataCache = parsed;
+    return parsed;
+  } catch (error: any) {
+    // This is normal the first time, before data/public-content.json exists.
+    console.warn("Public website data not found in Blob yet. Using local seed DB.", error?.message || error);
+    return null;
+  }
+}
+
+async function writePublicWebsiteDataToBlob(db: any) {
+  const publicData = extractPublicWebsiteData(db);
+
+  publicDataCache = publicData;
+
+  await put(PUBLIC_DATA_BLOB_PATH, JSON.stringify(publicData, null, 2), {
+    access: "public",
+    contentType: "application/json",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    cacheControlMaxAge: 0
+  });
+
+  return publicData;
+}
+
+// Helpers to read and write database
+async function getDBState() {
+  const localDb = readLocalDBState();
+
+  if (!localDb) {
+    return null;
+  }
+
+  const blobPublicData = await readPublicWebsiteDataFromBlob();
+
+  if (blobPublicData) {
+    return mergePublicWebsiteData(localDb, blobPublicData);
+  }
+
+  // First deployment after enabling Blob persistence:
+  // seed Blob with current public website data.
+  try {
+    await writePublicWebsiteDataToBlob(localDb);
+  } catch (error) {
+    console.error("Failed to seed public website data into Blob:", error);
+  }
+
+  return localDb;
+}
+
+async function saveDBState(data: any) {
+  let localSaved = false;
+
+  // Keep the old temporary/local write so admin reset/session behavior does not break.
   try {
     ensureWritableDB();
     fs.mkdirSync(path.dirname(WRITABLE_DB_PATH), { recursive: true });
     fs.writeFileSync(WRITABLE_DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+    localSaved = true;
+  } catch (error) {
+    console.error("Failed to write to local JSON DB:", error);
+  }
+
+  // Persist the public website data permanently in Vercel Blob.
+  try {
+    await writePublicWebsiteDataToBlob(data);
     return true;
   } catch (error) {
-    console.error("Failed to write to JSON DB:", error);
-    return false;
+    console.error("Failed to write public website data to Vercel Blob:", error);
+    return localSaved;
   }
 }
 
@@ -390,8 +488,8 @@ app.post("/api/media/upload", requireAdmin, async (req, res) => {
 // ==========================================
 
 // Get entire site datasets
-app.get("/api/content", (req, res) => {
-  const db = getDBState();
+app.get("/api/content", async (req, res) => {
+  const db = await getDBState();
   if (!db) {
     return res.status(500).json({ error: "Unable to read database datasets." });
   }
@@ -407,7 +505,7 @@ app.post("/api/messages", async (req, res) => {
     return res.status(400).json({ error: "Required contact form parameters are missing." });
   }
 
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Unable to read database." });
 
   const newMessage = {
@@ -423,7 +521,7 @@ app.post("/api/messages", async (req, res) => {
 
   db.messages = db.messages || [];
   db.messages.unshift(newMessage);
-  saveDBState(db);
+  await saveDBState(db);
 
   // Retrieve same destination email address used for administrative actions
   const adminSettings = db.adminSettings || {};
@@ -452,13 +550,13 @@ app.post("/api/messages", async (req, res) => {
 });
 
 // Authentication log in
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: "Missing login details." });
   }
 
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   const adminSettings = db.adminSettings;
@@ -482,7 +580,7 @@ app.post("/api/auth/login", (req, res) => {
     const token = generateSessionToken("admin");
     // Securely record login timestamp
     db.adminSettings.lastLogin = new Date().toISOString();
-    saveDBState(db);
+    await saveDBState(db);
 
     res.json({ success: true, token });
   } else {
@@ -497,7 +595,7 @@ app.post("/api/auth/request-reset", async (req, res) => {
     return res.status(400).json({ error: "Email address is required." });
   }
 
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   const adminSettings = db.adminSettings || {};
@@ -520,7 +618,7 @@ app.post("/api/auth/request-reset", async (req, res) => {
     }
   };
 
-  saveDBState(db);
+  await saveDBState(db);
 
   // Print highly stylized mock email delivery card to the console logs
   console.log(`\n=============================================================`);
@@ -560,7 +658,7 @@ app.post("/api/auth/request-reset", async (req, res) => {
 });
 
 // Reset password with a valid reset code
-app.post("/api/auth/reset-password", (req, res) => {
+app.post("/api/auth/reset-password", async (req, res) => {
   const { email, code, newPassword } = req.body;
   if (!email || !code || !newPassword) {
     return res.status(400).json({ error: "Missing email, code, or new password." });
@@ -569,7 +667,7 @@ app.post("/api/auth/reset-password", (req, res) => {
     return res.status(400).json({ error: "Password must be at least 4 characters long." });
   }
 
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   const adminSettings = db.adminSettings || {};
@@ -597,7 +695,7 @@ app.post("/api/auth/reset-password", (req, res) => {
     resetCode: null, // Clear reset code
   };
 
-  saveDBState(db);
+  await saveDBState(db);
 
   res.json({
     success: true,
@@ -614,9 +712,31 @@ app.get("/api/auth/verify", requireAdmin, (req, res) => {
   res.json({ success: true, username: "admin" });
 });
 
+app.post("/api/admin/sync-public-data", requireAdmin, async (req, res) => {
+  const db = await getDBState();
+
+  if (!db) {
+    return res.status(500).json({ error: "Database state inaccessible." });
+  }
+
+  await saveDBState(db);
+
+  return res.json({
+    success: true,
+    message: "Public website data synced to Vercel Blob.",
+    blobPath: PUBLIC_DATA_BLOB_PATH,
+    products: Array.isArray(db.products) ? db.products.length : 0,
+    services: Array.isArray(db.services) ? db.services.length : 0,
+    hasSiteContent: Boolean(db.siteContent)
+  });
+});
+
+
+
+
 // Get current secure admin details
-app.get("/api/auth/settings", requireAdmin, (req, res) => {
-  const db = getDBState();
+app.get("/api/auth/settings", requireAdmin, async (req, res) => {
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
   const settings = db.adminSettings || {};
   res.json({
@@ -627,30 +747,30 @@ app.get("/api/auth/settings", requireAdmin, (req, res) => {
 });
 
 // Update Admin Registered Security Email
-app.put("/api/auth/update-email", requireAdmin, (req, res) => {
+app.put("/api/auth/update-email", requireAdmin, async (req, res) => {
   const { email } = req.body;
   if (!email || !email.includes("@")) {
     return res.status(400).json({ error: "A valid email is required." });
   }
 
-  const db = getDBState();
+ const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.adminSettings = db.adminSettings || {};
   db.adminSettings.adminEmail = email.trim();
 
-  saveDBState(db);
+  await saveDBState(db);
   res.json({ success: true, email: db.adminSettings.adminEmail, message: "Registered laboratory email updated!" });
 });
 
 // Update Admin Password
-app.put("/api/auth/update-password", requireAdmin, (req, res) => {
+app.put("/api/auth/update-password", requireAdmin, async (req, res) => {
   const { newPassword } = req.body;
   if (!newPassword || newPassword.trim().length < 4) {
     return res.status(400).json({ error: "Password must be at least 4 characters long." });
   }
 
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   const newSalt = crypto.randomBytes(16).toString("hex");
@@ -664,20 +784,20 @@ app.put("/api/auth/update-password", requireAdmin, (req, res) => {
     lastLogin: new Date().toISOString(),
   };
 
-  saveDBState(db);
+  await saveDBState(db);
   res.json({ success: true, message: "Administrator password updated successfully and default pass overridden!" });
 });
 
 // Update text copy sections
 // Update text copy sections
-app.put("/api/content/text", requireAdmin, (req, res) => {
+app.put("/api/content/text", requireAdmin, async (req, res) => {
   const { section, data } = req.body;
 
   if (!section || data === undefined || data === null) {
     return res.status(400).json({ error: "Section identifier or data values missing." });
   }
 
-  const db = getDBState();
+ const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.siteContent = db.siteContent || {};
@@ -721,14 +841,14 @@ app.put("/api/content/text", requireAdmin, (req, res) => {
     });
   }
 
-  saveDBState(db);
+  await saveDBState(db);
   res.json({ success: true, content: db.siteContent });
 });
 
 // Add a product catalog item
-app.post("/api/products", requireAdmin, (req, res) => {
+app.post("/api/products", requireAdmin, async (req, res) => {
   const productData = req.body;
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   const newProduct = {
@@ -748,16 +868,16 @@ app.post("/api/products", requireAdmin, (req, res) => {
 
   db.products = db.products || [];
   db.products.push(newProduct);
-  saveDBState(db);
+  await saveDBState(db);
 
   res.status(201).json({ success: true, product: newProduct });
 });
 
 // Update a product catalog item
-app.put("/api/products/:id", requireAdmin, (req, res) => {
+app.put("/api/products/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
-  const db = getDBState();
+ const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.products = db.products || [];
@@ -772,14 +892,14 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
     id, // Safeguard immutability of ID
   };
 
-  saveDBState(db);
+  await saveDBState(db);
   res.json({ success: true, product: db.products[index] });
 });
 
 // Delete a product catalog item
-app.delete("/api/products/:id", requireAdmin, (req, res) => {
+app.delete("/api/products/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.products = db.products || [];
@@ -790,14 +910,14 @@ app.delete("/api/products/:id", requireAdmin, (req, res) => {
     return res.status(404).json({ error: "Product item not found with this id." });
   }
 
-  saveDBState(db);
+  await saveDBState(db);
   res.json({ success: true, message: "Product deleted from catalog." });
 });
 
 // Add a consultation service item
-app.post("/api/services", requireAdmin, (req, res) => {
+app.post("/api/services", requireAdmin, async (req, res) => {
   const serviceData = req.body;
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   const newService = {
@@ -812,16 +932,16 @@ app.post("/api/services", requireAdmin, (req, res) => {
 
   db.services = db.services || [];
   db.services.push(newService);
-  saveDBState(db);
+  await saveDBState(db);
 
   res.status(201).json({ success: true, service: newService });
 });
 
 // Update a consultation service item
-app.put("/api/services/:id", requireAdmin, (req, res) => {
+app.put("/api/services/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.services = db.services || [];
@@ -836,14 +956,14 @@ app.put("/api/services/:id", requireAdmin, (req, res) => {
     id, // Safe ID
   };
 
-  saveDBState(db);
+  await saveDBState(db);
   res.json({ success: true, service: db.services[index] });
 });
 
 // Delete a consultation service item
-app.delete("/api/services/:id", requireAdmin, (req, res) => {
+app.delete("/api/services/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.services = db.services || [];
@@ -854,21 +974,21 @@ app.delete("/api/services/:id", requireAdmin, (req, res) => {
     return res.status(404).json({ error: "Service item not found with this id." });
   }
 
-  saveDBState(db);
+  await saveDBState(db);
   res.json({ success: true, message: "Consultation package deleted." });
 });
 
 // Admin list all contact forms
-app.get("/api/messages", requireAdmin, (req, res) => {
-  const db = getDBState();
+app.get("/api/messages", requireAdmin, async (req, res) => {
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
   res.json(db.messages || []);
 });
 
 // Toggle message read status
-app.put("/api/messages/:id/read", requireAdmin, (req, res) => {
+app.put("/api/messages/:id/read", requireAdmin, async  (req, res) => {
   const { id } = req.params;
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.messages = db.messages || [];
@@ -878,19 +998,19 @@ app.put("/api/messages/:id/read", requireAdmin, (req, res) => {
   }
 
   msg.isRead = !msg.isRead;
-  saveDBState(db);
+  await saveDBState(db);
   res.json({ success: true, message: msg });
 });
 
 // Admin delete contact message
-app.delete("/api/messages/:id", requireAdmin, (req, res) => {
+app.delete("/api/messages/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const db = getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.messages = db.messages || [];
   db.messages = db.messages.filter((m: any) => m.id !== id);
-  saveDBState(db);
+  await saveDBState(db);
 
   res.json({ success: true, message: "Contact lead successfully removed." });
 });
