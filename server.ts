@@ -649,6 +649,7 @@ app.put("/api/auth/update-password", requireAdmin, (req, res) => {
 });
 
 // Update text copy sections
+// Update text copy sections
 app.put("/api/content/text", requireAdmin, (req, res) => {
   const { section, data } = req.body;
   if (!section || !data) {
@@ -657,6 +658,9 @@ app.put("/api/content/text", requireAdmin, (req, res) => {
 
   const db = getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
+
+  // Ensure siteContent exists to prevent crashes on fresh or empty database structures
+  db.siteContent = db.siteContent || {};
 
   if (section === "hero") {
     db.siteContent.hero = { ...(db.siteContent.hero || {}), ...data };
@@ -675,12 +679,13 @@ app.put("/api/content/text", requireAdmin, (req, res) => {
   } else if (section === "catalog") {
     db.siteContent.catalog = data;
   } else if (section === "team") {
-    db.siteContent.team = data;
+    db.siteContent.team = data; // Added to support team lists
   } else if (section === "certifications") {
-    db.siteContent.certifications = data;
+    db.siteContent.certifications = data; // Added to support certification standard cards
   } else {
     return res.status(400).json({ error: "Invalid text section identifier." });
-}
+  }
+
   saveDBState(db);
   res.json({ success: true, content: db.siteContent });
 });
