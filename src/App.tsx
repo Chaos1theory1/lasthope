@@ -1185,17 +1185,72 @@ export default function App() {
     }
   };
 
-  // Base64 file converter for product/service image upload
-  const handleImageUpload = (file: File, callback: (base64: string) => void) => {
+ type BlobFolder = "products" | "services" | "logos" | "qr" | "content";
+
+const uploadFileToBlob = async (
+  file: File,
+  folder: BlobFolder = "content"
+): Promise<string> => {
+  if (!authToken) {
+    throw new Error("Please log in as admin before uploading images.");
+  }
+
+  if (file.size > 3 * 1024 * 1024) {
+    throw new Error("Image is too large. Please upload an image smaller than 3 MB.");
+  }
+
+  const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
+
     reader.readAsDataURL(file);
+
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        callback(reader.result);
+        resolve(reader.result);
+      } else {
+        reject(new Error("Invalid image file."));
       }
     };
-    reader.onerror = (error) => console.error("Error reading file:", error);
-  };
+
+    reader.onerror = () => reject(new Error("Could not read image file."));
+  });
+
+  const response = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      dataUrl,
+      filename: file.name,
+      folder
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Image upload failed.");
+  }
+
+  return data.url;
+};
+
+// Upload image to Vercel Blob, then save returned permanent URL
+const handleImageUpload = async (
+  file: File,
+  callback: (url: string) => void,
+  folder: BlobFolder = "products"
+) => {
+  try {
+    const url = await uploadFileToBlob(file, folder);
+    callback(url);
+  } catch (error: any) {
+    console.error("Image upload failed:", error);
+    alert(error.message || "Image upload failed.");
+  }
+};
 
   // ==========================================
   // ADMIN: Create, Update, Delete Services
@@ -2443,7 +2498,11 @@ export default function App() {
                             accept="image/*"
                             onChange={(e) => {
                               if (e.target.files?.[0]) {
-                                handleImageUpload(e.target.files[0], (b64) => setQrForm({ ...qrForm, image: b64 }));
+                                handleImageUpload(
+  e.target.files[0],
+  (url) => setQrForm((prev) => ({ ...prev, image: url })),
+  "qr"
+);
                               }
                             }}
                             className="w-full bg-white border border-stone-250 rounded-lg p-1 text-xs text-stone-900"
@@ -4019,18 +4078,18 @@ export default function App() {
                               setIsDraggingLogo(true);
                             }}
                             onDragLeave={() => setIsDraggingLogo(false)}
-                            onDrop={(e) => {
+                            onDrop={async (e) => {
                               e.preventDefault();
                               setIsDraggingLogo(false);
                               const file = e.dataTransfer.files?.[0];
                               if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  const base64String = reader.result as string;
-                                  setLogoUrlInput(base64String);
-                                  handleUpdateTextSection("logo", { logoUrl: base64String });
-                                };
-                                reader.readAsDataURL(file);
+                                try {
+  const url = await uploadFileToBlob(file, "logos");
+  setLogoUrlInput(url);
+  handleUpdateTextSection("logo", { logoUrl: url });
+} catch (error: any) {
+  alert(error.message || "Logo upload failed.");
+}
                               }
                             }}
                             className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer select-none ${
@@ -4048,16 +4107,16 @@ export default function App() {
                               id="logo-file-input"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => {
-                                    const base64String = reader.result as string;
-                                    setLogoUrlInput(base64String);
-                                    handleUpdateTextSection("logo", { logoUrl: base64String });
-                                  };
-                                  reader.readAsDataURL(file);
+                                  try {
+  const url = await uploadFileToBlob(file, "logos");
+  setLogoUrlInput(url);
+  handleUpdateTextSection("logo", { logoUrl: url });
+} catch (error: any) {
+  alert(error.message || "Logo upload failed.");
+}
                                 }
                               }}
                             />
@@ -4655,7 +4714,11 @@ export default function App() {
                                 accept="image/*"
                                 onChange={(e) => {
                                   if (e.target.files?.[0]) {
-                                    handleImageUpload(e.target.files[0], (b64) => setProductForm({ ...productForm, image: b64 }));
+                                    handleImageUpload(
+  e.target.files[0],
+  (url) => setProductForm((prev) => ({ ...prev, image: url })),
+  "products"
+);
                                   }
                                 }}
                                 className="w-full bg-stone-100 border border-stone-300 rounded-lg text-[10px] p-1"
@@ -4904,7 +4967,11 @@ export default function App() {
                               accept="image/*"
                               onChange={(e) => {
                                 if (e.target.files?.[0]) {
-                                  handleImageUpload(e.target.files[0], (b64) => setServiceForm({ ...serviceForm, image: b64 }));
+                                  handleImageUpload(
+  e.target.files[0],
+  (url) => setServiceForm((prev) => ({ ...prev, image: url })),
+  "services"
+);
                                 }
                               }}
                               className="w-full bg-stone-100 border border-stone-305 text-[10px] p-1 rounded"
