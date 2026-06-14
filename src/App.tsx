@@ -611,6 +611,8 @@ export default function App() {
     image: "",
     specifications: []
   });
+  const [isProductImageUploading, setIsProductImageUploading] = useState(false);
+
   const [tempSpec, setTempSpec] = useState<string>("");
   const [isSavingProduct, setIsSavingProduct] = useState<boolean>(false);
 
@@ -1125,6 +1127,10 @@ export default function App() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isProductImageUploading) {
+  alert("Please wait until the product image finishes uploading.");
+  return;
+}
     setIsSavingProduct(true);
     const isNew = !editingProduct;
     const url = isNew ? "/api/products" : `/api/products/${editingProduct.id}`;
@@ -4732,20 +4738,27 @@ const handleImageUpload = async (
 
                             <div className="space-y-1">
                               <label className="text-xs font-semibold text-stone-700 block text-emerald-900 font-bold">NATIVE IMAGE FILE UPLOAD</label>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  if (e.target.files?.[0]) {
-                                    handleImageUpload(
-  e.target.files[0],
-  (url) => setProductForm((prev) => ({ ...prev, image: url })),
-  "products"
-);
-                                  }
-                                }}
-                                className="w-full bg-stone-100 border border-stone-300 rounded-lg text-[10px] p-1"
-                              />
+                             <input
+  type="file"
+  accept="image/*"
+  onChange={(e) => {
+    const file = e.target.files?.[0];
+
+    if (file) {
+      setIsProductImageUploading(true);
+
+      handleImageUpload(
+        file,
+        (url) => {
+          setProductForm((prev) => ({ ...prev, image: url }));
+          setIsProductImageUploading(false);
+        },
+        "products"
+      );
+    }
+  }}
+  className="w-full bg-stone-100 border border-stone-300 rounded-lg text-[10px] p-1"
+/>
                             </div>
                           </div>
 
