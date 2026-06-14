@@ -595,27 +595,56 @@ app.put("/api/auth/update-password", requireAdmin, (req, res) => {
 });
 
 // Update text copy sections
+// Update text copy sections
 app.put("/api/content/text", requireAdmin, (req, res) => {
   const { section, data } = req.body;
-  if (!section || !data) {
+
+  if (!section || data === undefined || data === null) {
     return res.status(400).json({ error: "Section identifier or data values missing." });
   }
 
   const db = getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
+  db.siteContent = db.siteContent || {};
+
   if (section === "hero") {
-    db.siteContent.hero = { ...db.siteContent.hero, ...data };
+    db.siteContent.hero = { ...(db.siteContent.hero || {}), ...data };
   } else if (section === "about") {
-    db.siteContent.about = { ...db.siteContent.about, ...data };
+    db.siteContent.about = { ...(db.siteContent.about || {}), ...data };
   } else if (section === "contact") {
-    db.siteContent.contactDetails = { ...db.siteContent.contactDetails, ...data };
+    db.siteContent.contactDetails = { ...(db.siteContent.contactDetails || {}), ...data };
   } else if (section === "features") {
     db.siteContent.features = data;
   } else if (section === "logo") {
     db.siteContent.logoUrl = data.logoUrl;
+  } else if (section === "header") {
+    db.siteContent.header = data;
+  } else if (section === "footer") {
+    db.siteContent.footer = data;
+  } else if (section === "catalog") {
+    db.siteContent.catalog = data;
+  } else if (section === "team") {
+    db.siteContent.team = Array.isArray(data) ? data : [];
+  } else if (section === "certifications") {
+    db.siteContent.certifications = Array.isArray(data) ? data : [];
   } else {
-    return res.status(400).json({ error: "Invalid text section identifier." });
+    return res.status(400).json({
+      error: "Invalid text section identifier.",
+      receivedSection: section,
+      allowedSections: [
+        "hero",
+        "about",
+        "contact",
+        "features",
+        "logo",
+        "header",
+        "footer",
+        "catalog",
+        "team",
+        "certifications"
+      ]
+    });
   }
 
   saveDBState(db);
