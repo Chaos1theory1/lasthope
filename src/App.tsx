@@ -611,7 +611,7 @@ function EditableImage({
 const defaultTeamFallbacks: TeamMember[] = [
   {
     id: "team_1",
-    name: "Ali Basly",
+    name: "Ali",
     role: "Fondateur & analyste en systèmes d’information",
     bio: "Concepteur de la plateforme interne BiotechAgro dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, du business plan, des protocoles de production et du développement du site et de l’application interne.",
     image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=300"
@@ -638,6 +638,12 @@ export default function App() {
   const [isPreloadingQr, setIsPreloadingQr] = useState<boolean>(false);
   const [qrEditMode, setQrEditMode] = useState<boolean>(false);
   const [qrForm, setQrForm] = useState<Partial<Product>>({});
+
+  //home page background picture
+const [isHeroBgPanelOpen, setIsHeroBgPanelOpen] = useState(false);
+const [isHeroBgUploading, setIsHeroBgUploading] = useState(false);
+const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
+
 
   useEffect(() => {
     if (!selectedQrProduct) {
@@ -1441,6 +1447,7 @@ const uploadFileToBlob = async (
   return data.url;
 };
 
+
 const handleImageUpload = async (
   file: File,
   callback: (url: string) => void,
@@ -1452,6 +1459,74 @@ const handleImageUpload = async (
   } catch (error: any) {
     console.error("Image upload failed:", error);
     alert(error.message || "Image upload failed.");
+  }
+};
+
+const getHeroBackgroundImage = () => {
+  return (
+    siteContent.hero?.backgroundImage ||
+    "/assets/images/home_hero_background.png"
+  );
+};
+
+const isValidImageUrl = (value: string) => {
+  const trimmed = value.trim();
+
+  return (
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("/") ||
+    trimmed.startsWith("data:image/")
+  );
+};
+
+const handleSaveHeroBackgroundUrl = async () => {
+  const trimmed = heroBgUrlInput.trim();
+
+  if (!trimmed) {
+    alert("Please paste an image URL first.");
+    return;
+  }
+
+  if (!isValidImageUrl(trimmed)) {
+    alert("Please use a valid image URL starting with https://, http://, /, or data:image/.");
+    return;
+  }
+
+  await handleUpdateTextSection(
+    "hero",
+    {
+      ...siteContent.hero,
+      backgroundImage: trimmed
+    },
+    false
+  );
+
+  setIsHeroBgPanelOpen(false);
+};
+
+const handleUploadHeroBackground = async (file: File) => {
+  try {
+    setIsHeroBgUploading(true);
+
+    const url = await uploadFileToBlob(file, "home", 1800);
+
+    await handleUpdateTextSection(
+      "hero",
+      {
+        ...siteContent.hero,
+        backgroundImage: url
+      },
+      false
+    );
+
+    setHeroBgUrlInput(url);
+    setIsHeroBgPanelOpen(false);
+  } catch (error: any) {
+    console.error("Hero background upload failed:", error);
+    alert(error.message || "Hero background upload failed.");
+  } finally {
+    setIsHeroBgUploading(false);
   }
 };
 
@@ -1682,9 +1757,12 @@ const handleImageUpload = async (
   <div
   className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat opacity-100 saturate-[1.15] contrast-[1.08]"
   style={{
-    backgroundImage: "url('https://qmkmhcvaeof6jfya.public.blob.vercel-storage.com/content/backgroundhome.png')"
+    backgroundImage: `url('${getHeroBackgroundImage()}')`
   }}
 />
+
+
+
 
   <div className="absolute inset-0 -z-10 bg-white/25" />
 <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white/35 via-white/15 to-[#fcfcf9]/55" />
