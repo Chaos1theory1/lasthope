@@ -43,15 +43,14 @@ let dbStateCache: any = null;
 function loadInitialDB() {
   let resolvedPath = DB_PATH;
   
-  // Vercel / serverless runtime path safety resolvers
+ // Vercel / serverless runtime path safety resolvers
   const searchPaths = [
+    path.join("/tmp", "db.json"),
     DB_PATH,
     path.join(process.cwd(), "src", "db", "db.json"),
     path.join(safeDirname, "src", "db", "db.json"),
-    path.join(safeDirname, "../src", "db", "db.json"),
-    path.join("/tmp", "db.json")
+    path.join(safeDirname, "../src", "db", "db.json")
   ];
-
   for (const p of searchPaths) {
     try {
       if (p && fs.existsSync(p)) {

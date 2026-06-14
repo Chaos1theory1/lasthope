@@ -438,7 +438,7 @@ function EditableImage({
 const defaultTeamFallbacks: TeamMember[] = [
   {
     id: "team_1",
-    name: "Ali",
+    name: "Ali Basly",
     role: "Fondateur & analyste en systèmes d’information",
     bio: "Concepteur de la plateforme interne BiotechAgro dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, du business plan, des protocoles de production et du développement du site et de l’application interne.",
     image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=300"
@@ -980,7 +980,9 @@ export default function App() {
           alert(`Success: Website ${section} text saved securely.`);
         }
       } else {
-        alert("Verification failure. Check token validity.");
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error || errData.message || "Verification failure. Check token validity.";
+        alert(`Error: ${errMsg}`);
       }
     } catch (err) {
       alert("Error sending request.");
@@ -4109,7 +4111,10 @@ export default function App() {
                               if (data.content.contactDetails) setEditContactDetails(data.content.contactDetails);
                               alert("Success: Footer specifications and contact coordinates updated successfully.");
                             } else {
-                              alert("Verification error. Failed to save some fields. Try logging in again.");
+                              const failedRes = !resFooter.ok ? resFooter : resContact;
+                              const errData = await failedRes.json().catch(() => ({}));
+                              const errMsg = errData.error || errData.message || "Verification error. Failed to save some fields. Try logging in again.";
+                              alert(`Error: ${errMsg}`);
                             }
                           } catch (err) {
                             alert("Server communication error.");
