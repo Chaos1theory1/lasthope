@@ -1304,10 +1304,6 @@ const handleImageUpload = async (
 
   const handleSaveService = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isServiceImageUploading) {
-  alert("Please wait until the service image finishes uploading.");
-  return;
-}
     setIsSavingService(true);
     const isNew = !editingService;
     const url = isNew ? "/api/services" : `/api/services/${editingService.id}`;
@@ -4763,17 +4759,7 @@ const handleImageUpload = async (
   }}
   className="w-full bg-stone-100 border border-stone-300 rounded-lg text-[10px] p-1"
 />
-{isProductImageUploading && (
-  <p className="text-[10px] text-emerald-700 font-semibold">
-    Uploading image database... please wait before saving.
-  </p>
-)}
 
-{productForm.image && (
-  <p className="text-[10px] text-stone-500 break-all">
-    Current image URL: {productForm.image}
-  </p>
-)}
                             </div>
                           </div>
 
@@ -5014,42 +5000,19 @@ const handleImageUpload = async (
                           <div className="space-y-1">
                             <label className="text-xs font-semibold text-stone-700 block uppercase">NATIVE PICTURE FILE UPLOAD</label>
                             <input
-  type="file"
-  accept="image/*"
-  onChange={(e) => {
-    const file = e.target.files?.[0];
-
-    if (file) {
-      setIsServiceImageUploading(true);
-
-      handleImageUpload(
-        file,
-        (url) => {
-          setServiceForm((prev) => ({ ...prev, image: url }));
-        },
-        "services"
-      )
-        .catch(() => {
-          setServiceForm((prev) => ({ ...prev, image: prev.image || "" }));
-        })
-        .finally(() => {
-          setIsServiceImageUploading(false);
-        });
-    }
-  }}
-  className="w-full bg-stone-100 border border-stone-300 rounded-lg text-[10px] p-1"
-/>
-{isServiceImageUploading && (
-  <p className="text-[10px] text-emerald-700 font-semibold">
-    Uploading service image database... please wait before saving.
-  </p>
-)}
-
-{serviceForm.image && (
-  <p className="text-[10px] text-stone-500 break-all">
-    Current image URL: {serviceForm.image}
-  </p>
-)}
+                              type="file"
+                              accept="image/*"
+                              onChange={async (e) => {
+                                if (e.target.files?.[0]) {
+                                  handleImageUpload(
+  e.target.files[0],
+  (url) => setServiceForm((prev) => ({ ...prev, image: url })),
+  "services"
+);
+                                }
+                              }}
+                              className="w-full bg-stone-100 border border-stone-305 text-[10px] p-1 rounded"
+                            />
                           </div>
 
                           {/* Benefits list editing */}
