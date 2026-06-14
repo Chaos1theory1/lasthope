@@ -720,6 +720,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   // Client-side visual states
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [selectedProductDetails, setSelectedProductDetails] = useState<Product | null>(null);
+  const [selectedServiceDetails, setSelectedServiceDetails] = useState<Service | null>(null);
 
   // Client landing forms
   const [contactForm, setContactForm] = useState({
@@ -3704,17 +3705,18 @@ const handleUploadHeroBackground = async (file: File) => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {services.map((serv) => (
-                    <div
-                      key={serv.id}
-                      className="bg-white border border-stone-200/80 rounded-2xl overflow-hidden p-6 shadow-xs flex flex-col md:flex-row gap-6 hover:shadow-md transition-all self-stretch"
-                    >
+  <div
+    key={serv.id}
+    onClick={() => setSelectedServiceDetails(serv)}
+    className="bg-white border border-stone-200/80 rounded-2xl overflow-hidden p-6 shadow-xs flex flex-col md:flex-row gap-6 hover:shadow-md hover:translate-y-[-2px] transition-all self-stretch cursor-pointer group"
+  >
                       <div className="w-full md:w-1/3 bg-stone-100 rounded-xl overflow-hidden self-stretch h-40 md:h-auto">
                         <img
-                          src={serv.image}
-                          alt={getProductLocalizedValue(serv, "name", currentLanguage, serv.name)}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover"
-                        />
+  src={serv.image}
+  alt={getProductLocalizedValue(serv, "name", currentLanguage, serv.name)}
+  referrerPolicy="no-referrer"
+  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+/>
                       </div>
 
                       <div className="w-full md:w-2/3 flex flex-col justify-between space-y-4">
@@ -3742,9 +3744,26 @@ const handleUploadHeroBackground = async (file: File) => {
                         </div>
 
                         <div className="flex justify-between items-center pt-2 border-t border-stone-100">
-                          <span className="text-xs font-mono text-stone-400">Consultation pricing:</span>
-                          <span className="text-sm font-bold text-emerald-900 font-mono">{serv.price}</span>
-                        </div>
+  <div>
+    <span className="text-xs font-mono text-stone-400 block">
+      {currentLanguage === "ar"
+        ? "تسعير الاستشارة:"
+        : currentLanguage === "fr"
+        ? "Tarif de consultation :"
+        : "Consultation pricing:"}
+    </span>
+    <span className="text-sm font-bold text-emerald-900 font-mono">{serv.price}</span>
+  </div>
+
+  <span className="text-xs text-emerald-700 flex items-center gap-1 font-semibold">
+    {currentLanguage === "ar"
+      ? "عرض التفاصيل"
+      : currentLanguage === "fr"
+      ? "Voir détails"
+      : "View details"}
+    <ArrowUpRight className="w-3.5 h-3.5" />
+  </span>
+</div>
                       </div>
                     </div>
                   ))}
@@ -3840,6 +3859,136 @@ const handleUploadHeroBackground = async (file: File) => {
                 </div>
               </div>
             )}
+
+
+
+{/* DETAILED SERVICE POPUP MODAL */}
+{selectedServiceDetails && (
+  <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="bg-white rounded-3xl overflow-hidden max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-stone-200 relative animate-in fade-in zoom-in-95 duration-150">
+      
+      {/* Close button */}
+      <button
+        onClick={() => setSelectedServiceDetails(null)}
+        className="absolute top-4 right-4 p-2 bg-stone-900/70 text-white hover:bg-stone-900 rounded-full z-10 transition-colors cursor-pointer"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      <div className="h-64 relative bg-stone-100">
+        <img
+          src={selectedServiceDetails.image}
+          alt={getProductLocalizedValue(selectedServiceDetails, "name", currentLanguage, selectedServiceDetails.name)}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover"
+        />
+
+        <div className="absolute bottom-4 left-4 p-3 bg-stone-950/80 backdrop-blur-xs rounded-xl border border-stone-800 text-stone-100 max-w-[85%]">
+          <span className="text-[9px] font-mono tracking-widest text-emerald-300 block uppercase">
+            {selectedServiceDetails.duration || "Consulting Service"}
+          </span>
+
+          <h3 className="font-display font-medium text-lg leading-tight">
+            {getProductLocalizedValue(selectedServiceDetails, "name", currentLanguage, selectedServiceDetails.name)}
+          </h3>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-6">
+        <div className="space-y-2">
+          <span className="text-xs font-mono text-emerald-800 italic block font-bold">
+            {currentLanguage === "ar"
+              ? "خدمة هندسية واستشارية"
+              : currentLanguage === "fr"
+              ? "Service de conseil technique"
+              : "Technical Advisory Service"}
+          </span>
+
+          <p className="text-sm leading-relaxed text-stone-600 font-light">
+            {getProductLocalizedValue(selectedServiceDetails, "description", currentLanguage, selectedServiceDetails.description)}
+          </p>
+        </div>
+
+        {selectedServiceDetails.benefits && selectedServiceDetails.benefits.length > 0 && (
+          <div className="bg-stone-50 border border-stone-100 rounded-2xl p-4 space-y-3">
+            <span className="text-xs font-semibold text-stone-900 font-display block uppercase tracking-wider">
+              {currentLanguage === "ar"
+                ? "مزايا الخدمة:"
+                : currentLanguage === "fr"
+                ? "Avantages du service :"
+                : "Service Benefits:"}
+            </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {selectedServiceDetails.benefits.map((benefit, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-stone-700">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-light">{benefit}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="pt-4 border-t border-stone-150 flex justify-between items-center">
+          <div>
+            <span className="text-xs text-stone-400 block font-mono">
+              {currentLanguage === "ar"
+                ? "تسعير الاستشارة:"
+                : currentLanguage === "fr"
+                ? "Tarif de consultation :"
+                : "Consultation Pricing:"}
+            </span>
+
+            <span className="text-lg font-bold text-stone-900 font-mono">
+              {selectedServiceDetails.price}
+            </span>
+          </div>
+
+          <button
+            onClick={() => {
+              const localizedName = getProductLocalizedValue(
+                selectedServiceDetails,
+                "name",
+                currentLanguage,
+                selectedServiceDetails.name
+              );
+
+              setSelectedServiceDetails(null);
+
+              setContactForm((f) => ({
+                ...f,
+                subject:
+                  currentLanguage === "ar"
+                    ? `طلب استشارة: ${localizedName}`
+                    : currentLanguage === "fr"
+                    ? `Demande de consultation : ${localizedName}`
+                    : `Consultation inquiry: ${localizedName}`,
+                message:
+                  currentLanguage === "ar"
+                    ? `مرحباً فريق بيوتك أغرو، أود طلب استشارة حول خدمة "${localizedName}". الرجاء التواصل معي لتحديد التفاصيل الفنية والموعد المناسب.`
+                    : currentLanguage === "fr"
+                    ? `Bonjour l'équipe Biotech Agro, je souhaite demander une consultation concernant le service "${localizedName}". Merci de me contacter pour discuter des détails techniques et du calendrier.`
+                    : `Asslema Biotech Agro team, I would like to request a consultation regarding "${localizedName}". Please contact me to discuss technical details and scheduling.`
+              }));
+
+              setActivePage("contact");
+            }}
+            className="px-5 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl text-xs font-semibold tracking-wide transition-all shadow-xs cursor-pointer"
+          >
+            {currentLanguage === "ar"
+              ? "طلب استشارة"
+              : currentLanguage === "fr"
+              ? "Demander une consultation"
+              : "Request Consultation"}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
           </div>
         )}
