@@ -4375,10 +4375,10 @@ const handleUploadHeroBackground = async (file: File) => {
                             <input
                               type="email"
                               required
-                              
+                              value={resetEmail}
                               onChange={(e) => setResetEmail(e.target.value)}
                               className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-emerald-700 font-light"
-                              placeholder="biotechagro.digital@gmail.com"
+                              placeholder="Enter admin registered email"
                             />
                             <p className="text-[10px] text-stone-400 font-light">Your registered access email can be matched below.</p>
                           </div>
