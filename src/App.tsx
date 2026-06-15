@@ -4294,7 +4294,7 @@ const handleUploadHeroBackground = async (file: File) => {
                           value={adminUsername}
                           onChange={(e) => setAdminUsername(e.target.value)}
                           className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-emerald-700 transition-all font-light"
-                          placeholder="e.g. admin"
+                          placeholder="username/email"
                         />
                       </div>
 
@@ -4310,10 +4310,7 @@ const handleUploadHeroBackground = async (file: File) => {
                         />
                       </div>
 
-                      <div className="bg-stone-50 p-3 rounded-xl border border-stone-100 text-[11px] text-stone-500 font-light flex items-start gap-1.5 leading-relaxed">
-                        <Info className="w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5" />
-                        <span><strong>Staff Notice:</strong> The default credentials are <code>admin</code> / <code>admin</code> unless customized inside settings.</span>
-                      </div>
+                      
 
                       <button
                         type="submit"
