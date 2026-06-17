@@ -722,18 +722,15 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const [siteContent, setSiteContent] = useState<SiteContent | null>(null);
   const [isLoadingContent, setIsLoadingContent] = useState<boolean>(true);
 
-  // Dynamically update the website favicon to match the logo
+  // removed dynamics for logo update the website favicon to match the logo
   useEffect(() => {
-    const faviconUrl = siteContent?.logoUrl || "/src/assets/images/biotech_agro_logo_1781085871729.png";
-    let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "icon";
-      document.head.appendChild(link);
-    }
+  const faviconUrl = "https://biotech-agro.com/favicon.ico";
+
+  let link: HTMLLinkElement | null = document.querySelector("link[rel='icon']");
+  if (link) {
     link.href = faviconUrl;
-    link.type = "image/png";
-  }, [siteContent?.logoUrl]);
+  }
+}, []);
 
   // Sync active language text direction for RTL (Arabic) or LTR (French/English)
   useEffect(() => {
