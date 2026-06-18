@@ -10,7 +10,7 @@ import { put, get } from "@vercel/blob";
 
 const app = express();
 // Middleware to parse huge JSON bodies (for user base64 photo uploads up to 20MB)
-app.use(express.json({ limit: "4mb" }));
+app.use(express.json({ limit: "10mb" }));
 
 // Resolve paths
 // Local file is still used as the seed/fallback.
@@ -798,7 +798,7 @@ app.put("/api/content/text", requireAdmin, async (req, res) => {
     return res.status(400).json({ error: "Section identifier or data values missing." });
   }
 
- const db = await getDBState();
+  const db = await getDBState();
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.siteContent = db.siteContent || {};
@@ -819,14 +819,12 @@ app.put("/api/content/text", requireAdmin, async (req, res) => {
     db.siteContent.footer = data;
   } else if (section === "catalog") {
     db.siteContent.catalog = data;
-  } else if (section === "catalog") {
-  db.siteContent.catalog = data;
-} else if (section === "gallery") {
-  db.siteContent.gallery = {
-    ...(db.siteContent.gallery || {}),
-    ...data,
-    images: Array.isArray(data.images) ? data.images : []
-  };
+  } else if (section === "gallery") {
+    db.siteContent.gallery = {
+      ...(db.siteContent.gallery || {}),
+      ...data,
+      images: Array.isArray(data.images) ? data.images : []
+    };
   } else if (section === "team") {
     db.siteContent.team = Array.isArray(data) ? data : [];
   } else if (section === "certifications") {
@@ -844,10 +842,9 @@ app.put("/api/content/text", requireAdmin, async (req, res) => {
         "header",
         "footer",
         "catalog",
-        "team",
         "gallery",
+        "team",
         "certifications"
-        
       ]
     });
   }

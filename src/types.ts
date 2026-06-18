@@ -180,7 +180,7 @@ export interface CatalogSection {
   servicesSubtitle_ar?: string;
 }
 
-interface GalleryImage {
+export interface GalleryImage {
   id: string;
   url: string;
   title?: string;

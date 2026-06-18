@@ -44,30 +44,6 @@ import { Product, Service, ContactMessage, SiteContent, DatabaseState, ProductCa
 import { i18n } from "./translations";
 
 
-
-// auto-slide effect for gallery in home page
-
-useEffect(() => {
-  if (galleryImages.length <= 1) return;
-
-  const timer = window.setInterval(() => {
-    setGallerySlideIndex((current) => {
-      return (current + 1) % galleryImages.length;
-    });
-  }, 4500);
-
-  return () => window.clearInterval(timer);
-}, [galleryImages.length]);
-
-useEffect(() => {
-  if (gallerySlideIndex >= galleryImages.length) {
-    setGallerySlideIndex(0);
-  }
-}, [gallerySlideIndex, galleryImages.length]);
-
-
-
-
 // Floating-overlay or in-place inline text editor for admin live editing
 function EditableText({
   value,
@@ -432,6 +408,18 @@ function getProductLocalizedValue(
   return defaultValue;
 }
 
+type BlobFolder =
+  | "products"
+  | "services"
+  | "logos"
+  | "qr"
+  | "content"
+  | "home"
+  | "about"
+  | "gallery"
+  | "team"
+  | "certifications";
+
 // Inline image asset editor for admin live image changes
 // Inline image asset editor for admin live image changes
 function EditableImage({
@@ -692,9 +680,6 @@ export default function App() {
   const [isPreloadingQr, setIsPreloadingQr] = useState<boolean>(false);
   const [qrEditMode, setQrEditMode] = useState<boolean>(false);
   const [qrForm, setQrForm] = useState<Partial<Product>>({});
-  const [gallerySlideIndex, setGallerySlideIndex] = useState(0);
-  const [isGalleryUploading, setIsGalleryUploading] = useState(false);
-
   //home page background picture
 const [isHeroBgPanelOpen, setIsHeroBgPanelOpen] = useState(false);
 const [isHeroBgUploading, setIsHeroBgUploading] = useState(false);
@@ -749,8 +734,29 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const [siteContent, setSiteContent] = useState<SiteContent | null>(null);
   const galleryImages = siteContent?.gallery?.images || [];
   const [gallerySlideIndex, setGallerySlideIndex] = useState<number>(0);
-const [isGalleryUploading, setIsGalleryUploading] = useState<boolean>(false);
+  const [isGalleryUploading, setIsGalleryUploading] = useState<boolean>(false);
   const [isLoadingContent, setIsLoadingContent] = useState<boolean>(true);
+
+
+  // Auto-slide effect for gallery in home page
+  useEffect(() => {
+    if (galleryImages.length <= 1) return;
+
+    const timer = window.setInterval(() => {
+      setGallerySlideIndex((current) => {
+        return (current + 1) % galleryImages.length;
+      });
+    }, 4500);
+
+    return () => window.clearInterval(timer);
+  }, [galleryImages.length]);
+
+  useEffect(() => {
+    if (gallerySlideIndex >= galleryImages.length) {
+      setGallerySlideIndex(0);
+    }
+  }, [gallerySlideIndex, galleryImages.length]);
+
   
 
   // removed dynamics for update the website favicon to match the logo
@@ -1441,20 +1447,7 @@ const [isGalleryUploading, setIsGalleryUploading] = useState<boolean>(false);
       alert("Error contacting server.");
     }
   };
-
   // Base64 file converter for product/service image upload
-type BlobFolder =
-  | "products"
-  | "services"
-  | "logos"
-  | "qr"
-  | "content"
-  | "home"
-  | "about"
-  | "gallery"
-  | "team"
-  | "certifications";
-
 const uploadFileToBlob = async (
   file: File,
   folder: BlobFolder = "content",
@@ -1467,6 +1460,45 @@ const uploadFileToBlob = async (
   if (file.size > 3 * 1024 * 1024) {
     throw new Error("Image is too large. Please upload an image smaller than 3 MB.");
   }
+
+
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.readAsDataURL(file);
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error("Invalid image file."));
+      }
+    };
+
+    reader.onerror = () => reject(new Error("Could not read image file."));
+  });
+
+  const response = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      dataUrl,
+      filename: file.name,
+      folder
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Image upload failed.");
+  }
+
+  return data.url;
+};
 
 
 const handleSaveGalleryImages = async (images: GalleryImage[]) => {
@@ -1514,48 +1546,6 @@ const handleRemoveGalleryImage = async (imageId: string) => {
 
 
 
-
-
-
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.readAsDataURL(file);
-
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-      } else {
-        reject(new Error("Invalid image file."));
-      }
-    };
-
-    reader.onerror = () => reject(new Error("Could not read image file."));
-  });
-
-  const response = await fetch("/api/media/upload", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`
-    },
-    body: JSON.stringify({
-      dataUrl,
-      filename: file.name,
-      folder
-    })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || "Image upload failed.");
-  }
-
-  return data.url;
-};
-
-
 const handleImageUpload = async (
   file: File,
   callback: (url: string) => void,
@@ -1572,7 +1562,7 @@ const handleImageUpload = async (
 
 const getHeroBackgroundImage = () => {
   return (
-    siteContent.hero?.backgroundImage ||
+    siteContent?.hero?.backgroundImage ||
     "/assets/images/home_hero_background.png"
   );
 };
@@ -1604,7 +1594,7 @@ const handleSaveHeroBackgroundUrl = async () => {
   await handleUpdateTextSection(
     "hero",
     {
-      ...siteContent.hero,
+      ...(siteContent?.hero || {}),
       backgroundImage: trimmed
     },
     false
@@ -1622,7 +1612,7 @@ const handleUploadHeroBackground = async (file: File) => {
     await handleUpdateTextSection(
       "hero",
       {
-        ...siteContent.hero,
+        ...(siteContent?.hero || {}),
         backgroundImage: url
       },
       false
@@ -1996,7 +1986,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   <Sparkles className="w-3 h-3 text-emerald-700 animate-spin-slow" />
                   <EditableText
                     value={getLocalizedValue(siteContent.hero, "badge", currentLanguage, "Tunisian Advanced Myco-Lab", "hero")}
-                    onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, badge: val, [`badge_${currentLanguage}`]: val }, false)}
+                    onSave={(val) => handleUpdateTextSection("hero", { ...(siteContent?.hero || {}), badge: val, [`badge_${currentLanguage}`]: val }, false)}
                     isAdmin={isAdminLoggedIn}
                   />
                 </span>
@@ -2004,7 +1994,7 @@ const handleUploadHeroBackground = async (file: File) => {
                 <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-stone-900 leading-[1.1]">
                   <EditableText
                     value={getLocalizedValue(siteContent.hero, "title", currentLanguage, "Unlocking the Organic Power of Pure Mushroom Spawn", "hero")}
-                    onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, title: val, [`title_${currentLanguage}`]: val }, false)}
+                    onSave={(val) => handleUpdateTextSection("hero", { ...(siteContent?.hero || {}), title: val, [`title_${currentLanguage}`]: val }, false)}
                     isAdmin={isAdminLoggedIn}
                     multiline={true}
                   />
@@ -2013,7 +2003,7 @@ const handleUploadHeroBackground = async (file: File) => {
                 <p className="text-stone-600 text-lg sm:text-xl font-light leading-relaxed max-w-2xl mx-auto">
                   <EditableText
                     value={getLocalizedValue(siteContent.hero, "subtitle", currentLanguage, "Certified pure strain inoculants & eco-packaging substrates grown locally in Tunisia under elite aseptic standards.", "hero")}
-                    onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, subtitle: val, [`subtitle_${currentLanguage}`]: val }, false)}
+                    onSave={(val) => handleUpdateTextSection("hero", { ...(siteContent?.hero || {}), subtitle: val, [`subtitle_${currentLanguage}`]: val }, false)}
                     isAdmin={isAdminLoggedIn}
                     multiline={true}
                   />
@@ -2026,7 +2016,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   >
                     <EditableText
                       value={getLocalizedValue(siteContent.hero, "primaryCta", currentLanguage, "Explore Catalogs", "hero")}
-                      onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, primaryCta: val, [`primaryCta_${currentLanguage}`]: val }, false)}
+                      onSave={(val) => handleUpdateTextSection("hero", { ...(siteContent?.hero || {}), primaryCta: val, [`primaryCta_${currentLanguage}`]: val }, false)}
                       isAdmin={isAdminLoggedIn}
                     />
                   </button>
@@ -2036,7 +2026,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   >
                     <EditableText
                       value={getLocalizedValue(siteContent.hero, "secondaryCta", currentLanguage, "Inquire Live", "hero")}
-                      onSave={(val) => handleUpdateTextSection("hero", { ...siteContent.hero, secondaryCta: val, [`secondaryCta_${currentLanguage}`]: val }, false)}
+                      onSave={(val) => handleUpdateTextSection("hero", { ...(siteContent?.hero || {}), secondaryCta: val, [`secondaryCta_${currentLanguage}`]: val }, false)}
                       isAdmin={isAdminLoggedIn}
                     />
                   </button>
