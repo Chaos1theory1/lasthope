@@ -722,7 +722,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const [siteContent, setSiteContent] = useState<SiteContent | null>(null);
   const [isLoadingContent, setIsLoadingContent] = useState<boolean>(true);
 
-  // removed dynamics for logo update the website favicon to match the logo
+  // removed dynamics for update the website favicon to match the logo
   useEffect(() => {
   const faviconUrl = "https://biotech-agro.com/favicon.ico";
 
@@ -1781,11 +1781,14 @@ const handleUploadHeroBackground = async (file: File) => {
   className="relative isolate overflow-hidden bg-[#fcfcf9] pt-20 pb-16 px-4 sm:px-6 lg:px-8 border-b border-stone-200/50"
 >
   
-  <div
-  className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat opacity-100 saturate-[1.15] contrast-[1.08]"
-  style={{
-    backgroundImage: `url('${getHeroBackgroundImage()}')`
-  }}
+  <img
+  src={getHeroBackgroundImage()}
+  alt=""
+  fetchPriority="high"
+  loading="eager"
+  decoding="async"
+  className="absolute inset-0 -z-20 w-full h-full object-cover object-center opacity-100 saturate-[1.15] contrast-[1.08]"
+  referrerPolicy="no-referrer"
 />
 
 
