@@ -2081,6 +2081,35 @@ const handleUploadHeroBackground = async (file: File) => {
             </section>
 
 
+const getGalleryAutoTranslations = (
+  field: "title" | "subtitle",
+  value: string,
+  sourceLanguage: "en" | "fr" | "ar"
+) => {
+  const translations: Record<string, Record<string, string>> = {
+    title: {
+      en: "Inside Biotech Agro",
+      fr: "Au cœur de Biotech Agro",
+      ar: "داخل مختبر Biotech Agro"
+    },
+    subtitle: {
+      en: "A visual look at our laboratory, mycelium production, quality control and field work.",
+      fr: "Un aperçu visuel de notre laboratoire, de la production de mycélium, du contrôle qualité et du travail terrain.",
+      ar: "نظرة مرئية على المختبر، إنتاج الميسيليوم، مراقبة الجودة والعمل الميداني."
+    }
+  };
+
+  return {
+    [field]: value,
+    [`${field}_${sourceLanguage}`]: value,
+    [`${field}_en`]: sourceLanguage === "en" ? value : translations[field].en,
+    [`${field}_fr`]: sourceLanguage === "fr" ? value : translations[field].fr,
+    [`${field}_ar`]: sourceLanguage === "ar" ? value : translations[field].ar
+  };
+};
+
+
+
 {/* Auto Picture Gallery */}
 {siteContent && (galleryImages.length > 0 || isAdminLoggedIn) && (
   <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -2097,17 +2126,16 @@ const handleUploadHeroBackground = async (file: File) => {
             <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">
               <EditableText
                 value={getLocalizedValue(siteContent.gallery || {}, "title", currentLanguage, "Inside Biotech Agro")}
-                onSave={(val) =>
-                  handleUpdateTextSection(
-                    "gallery",
-                    {
-                      ...(siteContent.gallery || { images: galleryImages }),
-                      title: val,
-                      [`title_${currentLanguage}`]: val
-                    },
-                    false
-                  )
-                }
+               onSave={(val) =>
+  handleUpdateTextSection(
+    "gallery",
+    {
+      ...(siteContent.gallery || { images: galleryImages }),
+      ...getGalleryAutoTranslations("title", val, currentLanguage)
+    },
+    false
+  )
+}
                 isAdmin={isAdminLoggedIn}
               />
             </h2>
@@ -2121,17 +2149,16 @@ const handleUploadHeroBackground = async (file: File) => {
   "A visual look at our laboratory, mycelium production, quality control and field work.",
   "gallery"
 )}
-                onSave={(val) =>
-                  handleUpdateTextSection(
-                    "gallery",
-                    {
-                      ...(siteContent.gallery || { images: galleryImages }),
-                      subtitle: val,
-                      [`subtitle_${currentLanguage}`]: val
-                    },
-                    false
-                  )
-                }
+              onSave={(val) =>
+  handleUpdateTextSection(
+    "gallery",
+    {
+      ...(siteContent.gallery || { images: galleryImages }),
+      ...getGalleryAutoTranslations("subtitle", val, currentLanguage)
+    },
+    false
+  )
+}
                 isAdmin={isAdminLoggedIn}
                 multiline={true}
               />
