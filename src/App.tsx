@@ -1462,12 +1462,11 @@ const uploadFileToBlob = async (
     throw new Error("Please log in as admin before uploading images.");
   }
 
-  if (file.size > 3 * 1024 * 1024) {
-    throw new Error("Image is too large. Please upload an image smaller than 3 MB.");
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error("Image is too large. Please upload an image smaller than 15 MB.");
   }
 
-
-  const dataUrl = await new Promise<string>((resolve, reject) => {
+  const originalDataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
 
     reader.readAsDataURL(file);
@@ -1482,6 +1481,10 @@ const uploadFileToBlob = async (
 
     reader.onerror = () => reject(new Error("Could not read image file."));
   });
+
+  const dataUrl = originalDataUrl.startsWith("data:image/svg+xml")
+    ? originalDataUrl
+    : await resizeImage(originalDataUrl, maxDim);
 
   const response = await fetch("/api/media/upload", {
     method: "POST",
@@ -1533,6 +1536,10 @@ const handleAddGalleryImage = async (file: File) => {
     };
 
     await handleSaveGalleryImages([...galleryImages, newImage]);
+
+    setGallerySlideIndex(galleryImages.length);
+    setGalleryUrlInput("");
+    setIsGalleryPanelOpen(false);
   } catch (error: any) {
     console.error("Gallery upload failed:", error);
     alert(error.message || "Gallery upload failed.");
@@ -2122,7 +2129,14 @@ const handleUploadHeroBackground = async (file: File) => {
           </div>
 
           {isAdminLoggedIn && (
-            <label className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold cursor-pointer shadow-sm transition-all">
+            <button
+              type="button"
+              onClick={() => {
+                setGalleryUrlInput("");
+                setIsGalleryPanelOpen(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold cursor-pointer shadow-sm transition-all"
+            >
               {isGalleryUploading ? (
                 <>
                   <Loader2 size={15} className="animate-spin" />
@@ -2134,25 +2148,109 @@ const handleUploadHeroBackground = async (file: File) => {
                   Add Picture
                 </>
               )}
-
-              <input
-                type="file"
-                accept="image/*"
-                disabled={isGalleryUploading}
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-
-                  if (file) {
-                    handleAddGalleryImage(file);
-                  }
-
-                  e.currentTarget.value = "";
-                }}
-              />
-            </label>
+            </button>
           )}
         </div>
+
+        {isGalleryPanelOpen && (
+          <div
+            className="fixed inset-0 z-[100] bg-stone-950/60 flex items-center justify-center p-4"
+            onClick={() => {
+              if (!isGalleryUploading) {
+                setIsGalleryPanelOpen(false);
+              }
+            }}
+          >
+            <div
+              className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-stone-200 p-5 space-y-4 text-start"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900">
+                    Add Gallery Picture
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-1">
+                    Upload a new picture to Vercel Blob, or paste an existing Blob/image URL.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isGalleryUploading) {
+                      setIsGalleryPanelOpen(false);
+                    }
+                  }}
+                  className="p-1 rounded-lg hover:bg-stone-100 text-stone-500"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="border border-stone-200 rounded-xl p-4 space-y-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">
+                  Option 1 — Upload from device to Blob gallery
+                </p>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={isGalleryUploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+
+                    if (file) {
+                      handleAddGalleryImage(file);
+                    }
+
+                    e.currentTarget.value = "";
+                  }}
+                  className="w-full rounded-lg border border-stone-250 bg-white px-3 py-2 text-xs text-stone-800"
+                />
+
+                {isGalleryUploading && (
+                  <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-2">
+                    <Loader2 size={12} className="animate-spin" />
+                    Uploading picture to Vercel Blob gallery...
+                  </p>
+                )}
+
+                <p className="text-[10px] text-stone-400">
+                  Recommended: JPG, PNG, or WebP. Large images are resized before upload.
+                </p>
+              </div>
+
+              <div className="border border-stone-200 rounded-xl p-4 space-y-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">
+                  Option 2 — Import image by URL
+                </p>
+
+                <input
+                  type="url"
+                  value={galleryUrlInput}
+                  onChange={(e) => setGalleryUrlInput(e.target.value)}
+                  placeholder="https://xxxxx.public.blob.vercel-storage.com/gallery/image.webp"
+                  className="w-full rounded-lg border border-stone-250 bg-white px-3 py-2 text-xs text-stone-800 outline-none focus:border-emerald-500"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleAddGalleryImageUrl}
+                  disabled={isGalleryUploading}
+                  className="w-full rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold py-3 flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  <Check size={15} />
+                  Save URL
+                </button>
+
+                <p className="text-[10px] text-stone-400">
+                  Use this for images already uploaded to Vercel Blob or another public image URL.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {galleryImages.length > 0 ? (
           <>
