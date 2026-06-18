@@ -40,8 +40,33 @@ import {
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import GoogleDriveVault from "./components/GoogleDriveVault";
-import { Product, Service, ContactMessage, SiteContent, DatabaseState, ProductCategory, ProductStatus, TeamMember, Certification, FeatureItem, CatalogSection } from "./types";
+import { Product, Service, ContactMessage, SiteContent, DatabaseState, ProductCategory, ProductStatus, TeamMember, Certification, FeatureItem, CatalogSection, GalleryImage } from "./types";
 import { i18n } from "./translations";
+
+
+
+// auto-slide effect for gallery in home page
+
+useEffect(() => {
+  if (galleryImages.length <= 1) return;
+
+  const timer = window.setInterval(() => {
+    setGallerySlideIndex((current) => {
+      return (current + 1) % galleryImages.length;
+    });
+  }, 4500);
+
+  return () => window.clearInterval(timer);
+}, [galleryImages.length]);
+
+useEffect(() => {
+  if (gallerySlideIndex >= galleryImages.length) {
+    setGallerySlideIndex(0);
+  }
+}, [gallerySlideIndex, galleryImages.length]);
+
+
+
 
 // Floating-overlay or in-place inline text editor for admin live editing
 function EditableText({
@@ -667,6 +692,8 @@ export default function App() {
   const [isPreloadingQr, setIsPreloadingQr] = useState<boolean>(false);
   const [qrEditMode, setQrEditMode] = useState<boolean>(false);
   const [qrForm, setQrForm] = useState<Partial<Product>>({});
+  const [gallerySlideIndex, setGallerySlideIndex] = useState(0);
+  const [isGalleryUploading, setIsGalleryUploading] = useState(false);
 
   //home page background picture
 const [isHeroBgPanelOpen, setIsHeroBgPanelOpen] = useState(false);
@@ -720,7 +747,9 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [siteContent, setSiteContent] = useState<SiteContent | null>(null);
+  const galleryImages = siteContent?.gallery?.images || [];
   const [isLoadingContent, setIsLoadingContent] = useState<boolean>(true);
+  
 
   // removed dynamics for update the website favicon to match the logo
   useEffect(() => {
@@ -1420,6 +1449,7 @@ type BlobFolder =
   | "content"
   | "home"
   | "about"
+  | "gallery"
   | "team"
   | "certifications";
 
@@ -1435,6 +1465,55 @@ const uploadFileToBlob = async (
   if (file.size > 3 * 1024 * 1024) {
     throw new Error("Image is too large. Please upload an image smaller than 3 MB.");
   }
+
+
+const handleSaveGalleryImages = async (images: GalleryImage[]) => {
+  if (!siteContent) return;
+
+  await handleUpdateTextSection(
+    "gallery",
+    {
+      ...(siteContent.gallery || {}),
+      images
+    },
+    false
+  );
+};
+
+const handleAddGalleryImage = async (file: File) => {
+  try {
+    setIsGalleryUploading(true);
+
+    const url = await uploadFileToBlob(file, "gallery", 1600);
+
+    const newImage: GalleryImage = {
+      id: "gallery_" + Date.now(),
+      url,
+      title: "",
+      caption: ""
+    };
+
+    await handleSaveGalleryImages([...galleryImages, newImage]);
+  } catch (error: any) {
+    console.error("Gallery upload failed:", error);
+    alert(error.message || "Gallery upload failed.");
+  } finally {
+    setIsGalleryUploading(false);
+  }
+};
+
+const handleRemoveGalleryImage = async (imageId: string) => {
+  if (!confirm("Remove this picture from the gallery?")) return;
+
+  const updatedImages = galleryImages.filter((image) => image.id !== imageId);
+
+  await handleSaveGalleryImages(updatedImages);
+};
+
+
+
+
+
 
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -1962,6 +2041,196 @@ const handleUploadHeroBackground = async (file: File) => {
                 </div>
               </div>
             </section>
+
+
+{/* Auto Picture Gallery */}
+{siteContent && (galleryImages.length > 0 || isAdminLoggedIn) && (
+  <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative overflow-hidden rounded-[2rem] border border-emerald-100 bg-white shadow-sm">
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/80 via-white to-stone-50 pointer-events-none" />
+
+      <div className="relative p-5 sm:p-8 lg:p-10">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-6">
+          <div className="space-y-2 max-w-2xl">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold uppercase tracking-[0.18em]">
+              Galerie
+            </span>
+
+            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">
+              <EditableText
+                value={getLocalizedValue(siteContent.gallery || {}, "title", currentLanguage, "Inside Biotech Agro")}
+                onSave={(val) =>
+                  handleUpdateTextSection(
+                    "gallery",
+                    {
+                      ...(siteContent.gallery || { images: galleryImages }),
+                      title: val,
+                      [`title_${currentLanguage}`]: val
+                    },
+                    false
+                  )
+                }
+                isAdmin={isAdminLoggedIn}
+              />
+            </h2>
+
+            <p className="text-stone-500 text-sm sm:text-base leading-relaxed">
+              <EditableText
+                value={getLocalizedValue(siteContent.gallery || {}, "subtitle", currentLanguage, "A visual look at our laboratory, mycelium production, quality control and field work.")}
+                onSave={(val) =>
+                  handleUpdateTextSection(
+                    "gallery",
+                    {
+                      ...(siteContent.gallery || { images: galleryImages }),
+                      subtitle: val,
+                      [`subtitle_${currentLanguage}`]: val
+                    },
+                    false
+                  )
+                }
+                isAdmin={isAdminLoggedIn}
+                multiline={true}
+              />
+            </p>
+          </div>
+
+          {isAdminLoggedIn && (
+            <label className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold cursor-pointer shadow-sm transition-all">
+              {isGalleryUploading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <UploadCloud size={15} />
+                  Add Picture
+                </>
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                disabled={isGalleryUploading}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+
+                  if (file) {
+                    handleAddGalleryImage(file);
+                  }
+
+                  e.currentTarget.value = "";
+                }}
+              />
+            </label>
+          )}
+        </div>
+
+        {galleryImages.length > 0 ? (
+          <>
+            <div className="relative h-[260px] sm:h-[360px] lg:h-[430px] overflow-hidden rounded-[1.5rem] bg-stone-100 border border-stone-200">
+              {galleryImages.map((image, index) => (
+                <div
+                  key={image.id}
+                  className={`absolute inset-0 transition-opacity duration-700 ease-out ${
+                    index === gallerySlideIndex ? "opacity-100" : "opacity-0"
+                  }`}
+                >
+                  <img
+                    src={image.url}
+                    alt={image.title || "Biotech Agro gallery image"}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/45 via-transparent to-transparent" />
+                </div>
+              ))}
+
+              {galleryImages.length > 1 && (
+                <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-2">
+                  {galleryImages.map((image, index) => (
+                    <button
+                      key={image.id}
+                      type="button"
+                      onClick={() => setGallerySlideIndex(index)}
+                      className={`h-2 rounded-full transition-all ${
+                        index === gallerySlideIndex
+                          ? "w-8 bg-white"
+                          : "w-2 bg-white/50 hover:bg-white/80"
+                      }`}
+                      aria-label={`Show gallery image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {isAdminLoggedIn && galleryImages[gallerySlideIndex] && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveGalleryImage(galleryImages[gallerySlideIndex].id)}
+                  className="absolute top-4 right-4 inline-flex items-center gap-2 rounded-full bg-red-600/90 hover:bg-red-700 text-white px-4 py-2 text-[11px] font-bold shadow-lg"
+                >
+                  <Trash size={13} />
+                  Remove Current Picture
+                </button>
+              )}
+            </div>
+
+            {isAdminLoggedIn && (
+              <div className="mt-5 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-3">
+                {galleryImages.map((image, index) => (
+                  <div
+                    key={image.id}
+                    className={`relative h-20 rounded-xl overflow-hidden border ${
+                      index === gallerySlideIndex ? "border-emerald-500" : "border-stone-200"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setGallerySlideIndex(index)}
+                      className="w-full h-full"
+                    >
+                      <img
+                        src={image.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGalleryImage(image.id)}
+                      className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow"
+                      title="Remove picture"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          isAdminLoggedIn && (
+            <div className="rounded-[1.5rem] border border-dashed border-emerald-300 bg-emerald-50/60 p-10 text-center">
+              <p className="text-sm font-bold text-emerald-900">
+                Gallery is empty.
+              </p>
+              <p className="text-xs text-emerald-700 mt-2">
+                Upload the first picture. Visitors will not see this section until at least one image is added.
+              </p>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  </section>
+)}
+
+
 
             {/* Why Growers Choose Section */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 bg-gradient-to-b from-stone-50/50 to-white/80 border border-stone-200/60 rounded-3xl shadow-xs">

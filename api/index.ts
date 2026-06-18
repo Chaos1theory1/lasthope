@@ -446,6 +446,7 @@ app.post("/api/media/upload", requireAdmin, async (req, res) => {
     const safeFolder =
       folder === "home" ? "home" :
       folder === "about" ? "about" :
+      folder === "gallery" ? "gallery" :
       folder === "products" ? "products" :
       folder === "services" ? "services" :
       folder === "logos" ? "logos" :
@@ -818,6 +819,12 @@ app.put("/api/content/text", requireAdmin, async (req, res) => {
     db.siteContent.footer = data;
   } else if (section === "catalog") {
     db.siteContent.catalog = data;
+  } else if (section === "gallery") {
+  db.siteContent.gallery = {
+    ...(db.siteContent.gallery || {}),
+    ...data,
+    images: Array.isArray(data.images) ? data.images : []
+  };
   } else if (section === "team") {
     db.siteContent.team = Array.isArray(data) ? data : [];
   } else if (section === "certifications") {
@@ -836,7 +843,9 @@ app.put("/api/content/text", requireAdmin, async (req, res) => {
         "footer",
         "catalog",
         "team",
+        "gallery",
         "certifications"
+        
       ]
     });
   }

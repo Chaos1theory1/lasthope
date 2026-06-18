@@ -180,6 +180,25 @@ export interface CatalogSection {
   servicesSubtitle_ar?: string;
 }
 
+export interface GalleryImage {
+  id: string;
+  url: string;
+  title?: string;
+  caption?: string;
+}
+
+export interface GallerySection {
+  title?: string;
+  subtitle?: string;
+  title_en?: string;
+  title_fr?: string;
+  title_ar?: string;
+  subtitle_en?: string;
+  subtitle_fr?: string;
+  subtitle_ar?: string;
+  images: GalleryImage[];
+}
+
 export interface SiteContent {
   logoUrl?: string;
   hero: LandingHero;
@@ -191,6 +210,7 @@ export interface SiteContent {
   header?: HeaderContent;
   footer?: FooterContent;
   catalog?: CatalogSection;
+  gallery?: GallerySection;
 }
 
 export interface DatabaseState {
