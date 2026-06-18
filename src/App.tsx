@@ -1630,7 +1630,7 @@ const getGalleryAutoTranslations = (
     title: {
       en: "Inside Biotech Agro",
       fr: "Au cœur de Biotech Agro",
-      ar: "داخل مختبر Biotech Agro"
+      ar: "داخل مختبر بيوتك "
     },
     subtitle: {
       en: "A visual look at our laboratory, mycelium production, quality control and field work.",
