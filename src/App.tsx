@@ -748,6 +748,8 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const [services, setServices] = useState<Service[]>([]);
   const [siteContent, setSiteContent] = useState<SiteContent | null>(null);
   const galleryImages = siteContent?.gallery?.images || [];
+  const [gallerySlideIndex, setGallerySlideIndex] = useState<number>(0);
+const [isGalleryUploading, setIsGalleryUploading] = useState<boolean>(false);
   const [isLoadingContent, setIsLoadingContent] = useState<boolean>(true);
   
 

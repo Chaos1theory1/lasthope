@@ -819,7 +819,9 @@ app.put("/api/content/text", requireAdmin, async (req, res) => {
     db.siteContent.footer = data;
   } else if (section === "catalog") {
     db.siteContent.catalog = data;
-  } else if (section === "gallery") {
+  } else if (section === "catalog") {
+  db.siteContent.catalog = data;
+} else if (section === "gallery") {
   db.siteContent.gallery = {
     ...(db.siteContent.gallery || {}),
     ...data,
