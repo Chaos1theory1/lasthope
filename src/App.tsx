@@ -735,9 +735,14 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const galleryImages = siteContent?.gallery?.images || [];
   const [gallerySlideIndex, setGallerySlideIndex] = useState<number>(0);
   const [isGalleryUploading, setIsGalleryUploading] = useState<boolean>(false);
+  const [isGalleryPanelOpen, setIsGalleryPanelOpen] = useState(false);
+  const [galleryUrlInput, setGalleryUrlInput] = useState("");
   const [isLoadingContent, setIsLoadingContent] = useState<boolean>(true);
 
 
+
+
+  
   // Auto-slide effect for gallery in home page
   useEffect(() => {
     if (galleryImages.length <= 1) return;
@@ -1577,6 +1582,36 @@ const isValidImageUrl = (value: string) => {
     trimmed.startsWith("data:image/")
   );
 };
+
+const handleAddGalleryImageUrl = async () => {
+  const trimmed = galleryUrlInput.trim();
+
+  if (!trimmed) {
+    alert("Please paste an image URL first.");
+    return;
+  }
+
+  if (!isValidImageUrl(trimmed)) {
+    alert("Please use a valid image URL starting with https://, http://, /, or data:image/.");
+    return;
+  }
+
+  const newImage: GalleryImage = {
+    id: "gallery_" + Date.now(),
+    url: trimmed,
+    title: "",
+    caption: ""
+  };
+
+  await handleSaveGalleryImages([...galleryImages, newImage]);
+
+  setGallerySlideIndex(galleryImages.length);
+  setGalleryUrlInput("");
+  setIsGalleryPanelOpen(false);
+};
+
+
+
 
 const handleSaveHeroBackgroundUrl = async () => {
   const trimmed = heroBgUrlInput.trim();
