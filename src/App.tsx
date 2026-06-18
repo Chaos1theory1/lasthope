@@ -1630,7 +1630,7 @@ const getGalleryAutoTranslations = (
     title: {
       en: "Inside Biotech Agro",
       fr: "Au cœur de Biotech Agro",
-      ar: "داخل مختبر بيوتك "
+      ar: "داخل مختبر بيوتك أغرو"
     },
     subtitle: {
       en: "A visual look at our laboratory, mycelium production, quality control and field work.",
@@ -1650,6 +1650,57 @@ const getGalleryAutoTranslations = (
 
 
 
+
+const normalizeGalleryText = (value: string) => {
+  return value
+    .replace(/\s+/g, " ")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .trim()
+    .toLowerCase();
+};
+
+const getGalleryDisplayText = (field: "title" | "subtitle") => {
+  const fallbackText: Record<"title" | "subtitle", Record<"en" | "fr" | "ar", string>> = {
+    title: {
+      en: "Inside Biotech Agro",
+      fr: "Au cœur de Biotech Agro",
+      ar: "داخل مختبر بيوتك أغرو"
+    },
+    subtitle: {
+      en: "A visual look at our laboratory, mycelium production, quality control and field work.",
+      fr: "Un aperçu visuel de notre laboratoire, de la production de mycélium, du contrôle qualité et du travail terrain.",
+      ar: "نظرة مرئية على المختبر، إنتاج الميسيليوم، مراقبة الجودة والعمل الميداني."
+    }
+  };
+
+  const value = getLocalizedValue(
+    siteContent?.gallery || {},
+    field,
+    currentLanguage,
+    fallbackText[field].en,
+    "gallery"
+  );
+
+  const wrongHeroTexts = [
+    DEFAULT_FALLBACKS.ar?.title,
+    DEFAULT_FALLBACKS.ar?.hero_title,
+    DEFAULT_FALLBACKS.ar?.subtitle,
+    DEFAULT_FALLBACKS.ar?.hero_subtitle,
+    DEFAULT_FALLBACKS.fr?.title,
+    DEFAULT_FALLBACKS.fr?.hero_title,
+    DEFAULT_FALLBACKS.fr?.subtitle,
+    DEFAULT_FALLBACKS.fr?.hero_subtitle
+  ]
+    .filter(Boolean)
+    .map((item) => normalizeGalleryText(item as string));
+
+  if (!value || wrongHeroTexts.includes(normalizeGalleryText(value))) {
+    return fallbackText[field][currentLanguage];
+  }
+
+  return value;
+};
 
 const handleSaveHeroBackgroundUrl = async () => {
   const trimmed = heroBgUrlInput.trim();
@@ -2127,7 +2178,7 @@ const handleUploadHeroBackground = async (file: File) => {
 
             <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">
               <EditableText
-                value={getLocalizedValue(siteContent.gallery || {}, "title", currentLanguage, "Inside Biotech Agro")}
+                value={getGalleryDisplayText("title")}
                onSave={(val) =>
   handleUpdateTextSection(
     "gallery",
@@ -2144,13 +2195,7 @@ const handleUploadHeroBackground = async (file: File) => {
 
             <p className="text-stone-500 text-sm sm:text-base leading-relaxed">
               <EditableText
-                value={getLocalizedValue(
-  siteContent.gallery || {},
-  "subtitle",
-  currentLanguage,
-  "A visual look at our laboratory, mycelium production, quality control and field work.",
-  "gallery"
-)}
+                value={getGalleryDisplayText("subtitle")}
               onSave={(val) =>
   handleUpdateTextSection(
     "gallery",
