@@ -185,6 +185,8 @@ hero_title: "زراعة الإمكانات اللامتناهية للأبواغ
 hero_subtitle: "نحن نقوم بتدوير المنتجات الثانوية الزراعية التونسية - مثل قشور الزيتون وحبوب القمح - إلى أبواغ فطرية ممتازة ومواد حيوية قابلة للتحلل. تمكين المزارعين الإقليميين ودفع الاقتصاد الدائري.",
 primaryCta: "اكتشف منتجاتنا",
 secondaryCta: "احجز استشارة",
+gallery_title: "داخل مختبر Biotech Agro",
+gallery_subtitle: "نظرة مرئية على المختبر، إنتاج الميسيليوم، مراقبة الجودة والعمل الميداني",
     // About / Choose Section
     chooseTitle: "لماذا يختار المزارعون بيوتك أغرو",
     chooseSubtitle: "تجمع بيوتك أغرو بين التكنولوجيا الحيوية ومراقبة الجودة والأدوات الرقمية لتقديم حل متكامل لإنتاج الأبواغ الفطرية المصممة خصيصاً للأسواق التونسية والأفريقية.",
@@ -250,6 +252,8 @@ hero_title: "Cultiver le potentiel infini du mycélium",
 hero_subtitle: "Nous valorisons les co-produits agricoles tunisiens—comme les coques d'olives et les grains de blé—en blanc de semis de qualité supérieure et en biomatériaux compostables. Autonomiser les producteurs régionaux.",
 primaryCta: "Découvrir Nos Produits",
 secondaryCta: "Réserver un Conseil",
+gallery_title: "Au cœur de Biotech Agro",
+gallery_subtitle: "Un aperçu visuel de notre laboratoire, de la production de mycélium, du contrôle qualité et du travail terrain.",
     // About / Choose Section
     chooseTitle: "Pourquoi les producteurs choisissent Biotech Agro",
     chooseSubtitle: "Biotech Agro associe la biotechnologie, le contrôle qualité et le digital pour offrir une solution complète de production de mycélium sur les marchés tunisien et africain.",
