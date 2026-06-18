@@ -2114,7 +2114,13 @@ const handleUploadHeroBackground = async (file: File) => {
 
             <p className="text-stone-500 text-sm sm:text-base leading-relaxed">
               <EditableText
-                value={getLocalizedValue(siteContent.gallery || {}, "subtitle", currentLanguage, "A visual look at our laboratory, mycelium production, quality control and field work.")}
+                value={getLocalizedValue(
+  siteContent.gallery || {},
+  "subtitle",
+  currentLanguage,
+  "A visual look at our laboratory, mycelium production, quality control and field work.",
+  "gallery"
+)}
                 onSave={(val) =>
                   handleUpdateTextSection(
                     "gallery",
