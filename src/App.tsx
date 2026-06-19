@@ -260,7 +260,7 @@ gallery_subtitle: "نظرة مرئية على المختبر، إنتاج الم
 title: "Cultiver le potentiel infini du mycélium",
 subtitle: "Nous valorisons les co-produits agricoles tunisiens—comme les coques d'olives et les grains de blé—en blanc de semis de qualité supérieure et en biomatériaux compostables. Autonomiser les producteurs régionaux.",
 hero_title: "Cultiver le potentiel infini du mycélium",
-hero_subtitle: "Nous valorisons les co-produits agricoles tunisiens—comme les coques d'olives et les grains de blé—en blanc de semis de qualité supérieure et en biomatériaux compostables. Autonomiser les producteurs régionaux.",
+hero_subtitle: "Biotech Agro est une startup tunisienne innovante spécialisée dans la biotechnologie fongique, dédiée à la numérisation complète des processus de production, de suivi et de contrôle qualité des cultures fongiques. Nous intégrons des solutions numériques de pointe à chaque étape de la chaîne de valeur de la culture de champignons afin de garantir la performance, la traçabilité et la standardisation industrielle.",
 primaryCta: "Découvrir Nos Produits",
 secondaryCta: "Réserver un Conseil",
 gallery_title: "Au cœur de Biotech Agro",
