@@ -824,8 +824,6 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
     isActive: boolean;
     createdAt: string;
     lastLogin?: string;
-    lastSeenAt?: string;
-    isOnline?: boolean;
   };
 
   const [currentAdminUser, setCurrentAdminUser] = useState<AdminPanelUser | null>(null);
@@ -976,9 +974,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
     role: username === "admin" ? "owner" : "admin",
     isActive: true,
     createdAt: "",
-    lastLogin: secLastLogin || "",
-    lastSeenAt: "",
-    isOnline: true
+    lastLogin: secLastLogin || ""
   });
 
   const verifyTokenAndLoadInbox = async (token: string) => {
@@ -1301,40 +1297,8 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
     }
   }, [authToken]);
 
-  useEffect(() => {
-    if (!isAdminLoggedIn || !authToken) return;
-
-    const ping = async () => {
-      try {
-        const response = await fetch("/api/auth/ping", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-
-          if (data.user) {
-            setCurrentAdminUser(data.user);
-          }
-
-          if (currentAdminUser?.role === "owner") {
-            loadAdminUsers();
-          }
-        }
-      } catch (error) {
-        console.warn("Admin heartbeat failed:", error);
-      }
-    };
-
-    ping();
-
-    const timer = window.setInterval(ping, 60 * 1000);
-
-    return () => window.clearInterval(timer);
-  }, [isAdminLoggedIn, authToken, currentAdminUser?.role]);
+  // Online-admin heartbeat removed intentionally.
+  // This avoids repeated background database writes.
 
 
   // ==========================================
@@ -2310,7 +2274,7 @@ const handleUploadHeroBackground = async (file: File) => {
           <div>
             <h3 className="font-display font-bold text-lg text-stone-900">Admin Users</h3>
             <p className="text-xs text-stone-400 mt-1">
-              Owner-only staff management. Create users, assign roles, reset passwords, and monitor connected users.
+              Owner-only staff management. Create users, assign roles, reset passwords, and manage access.
             </p>
           </div>
 
@@ -2405,12 +2369,10 @@ const handleUploadHeroBackground = async (file: File) => {
           <table className="w-full text-xs">
             <thead className="bg-stone-50 text-stone-500">
               <tr>
-                <th className="text-left px-4 py-3 font-bold">Status</th>
                 <th className="text-left px-4 py-3 font-bold">User</th>
                 <th className="text-left px-4 py-3 font-bold">Role</th>
                 <th className="text-left px-4 py-3 font-bold">Email</th>
                 <th className="text-left px-4 py-3 font-bold">Last Login</th>
-                <th className="text-left px-4 py-3 font-bold">Last Online</th>
                 <th className="text-right px-4 py-3 font-bold">Actions</th>
               </tr>
             </thead>
@@ -2418,13 +2380,13 @@ const handleUploadHeroBackground = async (file: File) => {
             <tbody>
               {isLoadingAdminUsers ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-stone-400">
+                  <td colSpan={5} className="px-4 py-8 text-center text-stone-400">
                     Loading admin users...
                   </td>
                 </tr>
               ) : adminUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-stone-400">
+                  <td colSpan={5} className="px-4 py-8 text-center text-stone-400">
                     No admin users found.
                   </td>
                 </tr>
@@ -2432,23 +2394,6 @@ const handleUploadHeroBackground = async (file: File) => {
                 adminUsers.map((user) => (
                   <React.Fragment key={user.username}>
                     <tr className="border-t border-stone-100">
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-bold ${
-                            user.isOnline
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-stone-100 text-stone-500"
-                          }`}
-                        >
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              user.isOnline ? "bg-emerald-500" : "bg-stone-400"
-                            }`}
-                          />
-                          {user.isOnline ? "Connected" : "Offline"}
-                        </span>
-                      </td>
-
                       <td className="px-4 py-3">
                         <div className="font-bold text-stone-900">{user.displayName || user.username}</div>
                         <div className="text-[10px] text-stone-400">@{user.username}</div>
@@ -2467,10 +2412,6 @@ const handleUploadHeroBackground = async (file: File) => {
 
                       <td className="px-4 py-3 text-stone-500">
                         {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : "Never"}
-                      </td>
-
-                      <td className="px-4 py-3 text-stone-500">
-                        {user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleString() : "Never"}
                       </td>
 
                       <td className="px-4 py-3">
@@ -2523,7 +2464,7 @@ const handleUploadHeroBackground = async (file: File) => {
 
                     {resettingAdminUsername === user.username && (
                       <tr className="bg-amber-50/50 border-t border-amber-100">
-                        <td colSpan={7} className="px-4 py-4">
+                        <td colSpan={5} className="px-4 py-4">
                           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
                             <div className="text-xs text-amber-800 font-bold min-w-fit">
                               Set new temporary password for @{user.username}
@@ -2568,7 +2509,7 @@ const handleUploadHeroBackground = async (file: File) => {
         </div>
 
         <p className="text-[10px] text-stone-400">
-          Online status is based on the last heartbeat. A user is shown as connected if their last online timestamp is less than 2 minutes old.
+          Online admin tracking is disabled to reduce database writes. This panel shows account status and last login only.
         </p>
       </section>
     );
