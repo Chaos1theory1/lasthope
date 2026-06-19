@@ -21,7 +21,14 @@ const PUBLIC_DATA_BLOB_PATH = "data/public-content.json";
 const ADMIN_USERS_BLOB_PATH = process.env.ADMIN_USERS_BLOB_PATH || "data/admin-users.json";
 const SESSION_SECRET = process.env.SESSION_SECRET || "mycotunisia_secret_session_2026";
 const ADMIN_ACTION_LOG_USER_FOLDER = process.env.ADMIN_ACTION_LOG_USER_FOLDER || "data/admin-action-logs/users";
-const MAX_ADMIN_ACTION_LOG_ITEMS = parseInt(process.env.MAX_ADMIN_ACTION_LOG_ITEMS || "1000", 10);
+const MAX_ADMIN_ACTION_LOG_ITEMS = parseInt(process.env.MAX_ADMIN_ACTION_LOG_ITEMS || "500", 10);
+const ADMIN_ACTION_LOG_LATEST_ITEMS = parseInt(process.env.ADMIN_ACTION_LOG_LATEST_ITEMS || "50", 10);
+const ADMIN_ACTION_LOG_WARNING_ITEMS = parseInt(process.env.ADMIN_ACTION_LOG_WARNING_ITEMS || "400", 10);
+const ADMIN_ACTION_LOG_WARNING_BYTES = parseInt(process.env.ADMIN_ACTION_LOG_WARNING_BYTES || String(1024 * 1024), 10);
+const ADMIN_ACTION_LOG_HARD_BYTES = parseInt(process.env.ADMIN_ACTION_LOG_HARD_BYTES || String(2 * 1024 * 1024), 10);
+const ADMIN_ACTION_LOG_MAX_PARTS = parseInt(process.env.ADMIN_ACTION_LOG_MAX_PARTS || "50", 10);
+const ADMIN_ACTION_LOG_ALERTS_BLOB_PATH = process.env.ADMIN_ACTION_LOG_ALERTS_BLOB_PATH || "data/admin-action-logs/alerts.json";
+const ADMIN_ACTION_LOG_ALERT_COOLDOWN_HOURS = parseInt(process.env.ADMIN_ACTION_LOG_ALERT_COOLDOWN_HOURS || "24", 10);
 
 // Do not cache Blob-backed JSON in memory. Vercel serverless instances can keep stale memory
 // and accidentally overwrite newer Blob data during ping/login/update requests.
@@ -359,6 +366,26 @@ type AdminActionLogEntry = {
   details?: any;
 };
 
+type AdminConsoleAlert = {
+  id: string;
+  timestamp: string;
+  type: string;
+  severity: "info" | "warning" | "critical";
+  isRead: boolean;
+  readAt?: string;
+  alertKey: string;
+  title: string;
+  message: string;
+  details?: any;
+  email?: {
+    attempted: boolean;
+    success: boolean;
+    realSent: boolean;
+    recipients: string[];
+    error?: string;
+  };
+};
+
 function safeLogUsername(username: string) {
   return String(username || "unknown")
     .trim()
@@ -366,6 +393,27 @@ function safeLogUsername(username: string) {
     .replace(/[^a-z0-9._-]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "") || "unknown";
+}
+
+function getUtcYearMonth(date = new Date()) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function getLegacyUserLogPath(username: string) {
+  return `${ADMIN_ACTION_LOG_USER_FOLDER}/${safeLogUsername(username)}.json`;
+}
+
+function getLatestUserLogPath(username: string) {
+  return `${ADMIN_ACTION_LOG_USER_FOLDER}/${safeLogUsername(username)}/latest.json`;
+}
+
+function getMonthlyUserLogPath(username: string, date = new Date(), part = 1) {
+  const safeUsername = safeLogUsername(username);
+  const yearMonth = getUtcYearMonth(date);
+  const suffix = part > 1 ? `-part-${part}` : "";
+  return `${ADMIN_ACTION_LOG_USER_FOLDER}/${safeUsername}/${yearMonth}${suffix}.json`;
 }
 
 function sanitizeLogDetails(value: any): any {
@@ -398,31 +446,41 @@ function sanitizeLogDetails(value: any): any {
   return value;
 }
 
-async function readAdminUserLogFile(username: string): Promise<AdminActionLogEntry[]> {
-  try {
-    const usernameForPath = safeLogUsername(username);
-    const userLogPath = `${ADMIN_ACTION_LOG_USER_FOLDER}/${usernameForPath}.json`;
+function getJsonSizeBytes(value: any) {
+  return Buffer.byteLength(JSON.stringify(value, null, 2), "utf8");
+}
 
-    const result = await get(userLogPath, { access: "public" });
+function formatBytes(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} bytes`;
+}
+
+async function readBlobJsonArray<T = any>(blobPath: string): Promise<{ exists: boolean; items: T[]; sizeBytes: number; path: string }> {
+  try {
+    const result = await get(blobPath, { access: "public" });
 
     if (!result || result.statusCode !== 200 || !result.stream) {
-      return [];
+      return { exists: false, items: [], sizeBytes: 0, path: blobPath };
     }
 
     const text = await new Response(result.stream).text();
     const parsed = JSON.parse(text);
 
-    return Array.isArray(parsed) ? parsed : [];
+    return {
+      exists: true,
+      items: Array.isArray(parsed) ? parsed : [],
+      sizeBytes: Buffer.byteLength(text, "utf8"),
+      path: blobPath
+    };
   } catch (error) {
-    return [];
+    return { exists: false, items: [], sizeBytes: 0, path: blobPath };
   }
 }
 
-async function writeAdminUserLogFile(username: string, logs: AdminActionLogEntry[]) {
-  const usernameForPath = safeLogUsername(username);
-  const userLogPath = `${ADMIN_ACTION_LOG_USER_FOLDER}/${usernameForPath}.json`;
-
-  const blob = await put(userLogPath, JSON.stringify(logs, null, 2), {
+async function writeBlobJsonArray<T = any>(blobPath: string, items: T[]) {
+  const json = JSON.stringify(items, null, 2);
+  const blob = await put(blobPath, json, {
     access: "public",
     contentType: "application/json",
     addRandomSuffix: false,
@@ -431,9 +489,242 @@ async function writeAdminUserLogFile(username: string, logs: AdminActionLogEntry
   });
 
   return {
-    path: userLogPath,
+    path: blobPath,
     pathname: blob.pathname,
-    url: blob.url
+    url: blob.url,
+    sizeBytes: Buffer.byteLength(json, "utf8"),
+    entryCount: items.length
+  };
+}
+
+async function readAdminLogAlerts(): Promise<AdminConsoleAlert[]> {
+  const result = await readBlobJsonArray<AdminConsoleAlert>(ADMIN_ACTION_LOG_ALERTS_BLOB_PATH);
+  return result.items;
+}
+
+async function writeAdminLogAlerts(alerts: AdminConsoleAlert[]) {
+  return writeBlobJsonArray(ADMIN_ACTION_LOG_ALERTS_BLOB_PATH, alerts.slice(0, 300));
+}
+
+async function sendLogThresholdAlertEmail(alert: AdminConsoleAlert): Promise<{ success: boolean; realSent: boolean; recipients: string[]; error?: string }> {
+  try {
+    const users = await getAdminUsers();
+    const recipients = Array.from(new Set(
+      users
+        .filter((user) => user.isActive && (user.role === "owner" || user.role === "admin") && user.email)
+        .map((user) => user.email)
+    ));
+
+    if (recipients.length === 0) {
+      return { success: false, realSent: false, recipients: [], error: "No active owner/admin email recipients found." };
+    }
+
+    const transporter = getMailTransporter();
+
+    if (!transporter) {
+      console.warn("SMTP credentials not configured. Log threshold alert email simulated only.");
+      return { success: true, realSent: false, recipients };
+    }
+
+    const cleanEnvStr = (val?: string): string => {
+      if (!val) return "";
+      return val.replace(/^[\"']|[\"']$/g, "").trim();
+    };
+
+    const senderEmail = cleanEnvStr(process.env.SMTP_USER || "contact@biotech-agro.com");
+    const senderName = "Biotech Agro Admin Monitor";
+    const details = alert.details || {};
+
+    const mailOptions = {
+      from: `"${senderName}" <${senderEmail}>`,
+      to: recipients.join(","),
+      subject: `${alert.severity === "critical" ? "Critical" : "Warning"}: Admin log threshold reached`,
+      text: `${alert.title}\n\n${alert.message}\n\nUser: ${details.username || ""}\nLog file: ${details.path || ""}\nEntries: ${details.entryCount || 0}\nSize: ${details.sizeFormatted || ""}\nMonth: ${details.yearMonth || ""}\n\nThis alert was generated by the Biotech Agro admin monitor.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px; background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 16px; color: #1c1917;">
+          <h2 style="margin: 0 0 8px; color: ${alert.severity === "critical" ? "#b91c1c" : "#92400e"};">${alert.title}</h2>
+          <p style="font-size: 14px; line-height: 1.6; color: #44403c;">${alert.message}</p>
+          <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; padding: 16px; margin-top: 18px; font-size: 13px; line-height: 1.7;">
+            <p style="margin: 0;"><strong>User:</strong> ${details.username || ""}</p>
+            <p style="margin: 0;"><strong>Month:</strong> ${details.yearMonth || ""}</p>
+            <p style="margin: 0;"><strong>Part:</strong> ${details.part || 1}</p>
+            <p style="margin: 0;"><strong>Entries:</strong> ${details.entryCount || 0}</p>
+            <p style="margin: 0;"><strong>Size:</strong> ${details.sizeFormatted || ""}</p>
+            <p style="margin: 0; word-break: break-all;"><strong>Path:</strong> ${details.path || ""}</p>
+          </div>
+          <p style="font-size: 12px; color: #78716c; margin-top: 18px;">Open the owner console to review the alert and archive/export logs if needed.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { success: true, realSent: true, recipients };
+  } catch (error: any) {
+    console.error("Failed to send log threshold alert email:", error?.message || error);
+    return { success: false, realSent: false, recipients: [], error: error?.message || String(error) };
+  }
+}
+
+async function createLogThresholdAlertIfNeeded(details: {
+  username: string;
+  path: string;
+  yearMonth: string;
+  part: number;
+  entryCount: number;
+  sizeBytes: number;
+}) {
+  const warningByEntries = details.entryCount >= ADMIN_ACTION_LOG_WARNING_ITEMS;
+  const warningBySize = details.sizeBytes >= ADMIN_ACTION_LOG_WARNING_BYTES;
+  const criticalByEntries = details.entryCount >= MAX_ADMIN_ACTION_LOG_ITEMS;
+  const criticalBySize = details.sizeBytes >= ADMIN_ACTION_LOG_HARD_BYTES;
+
+  if (!warningByEntries && !warningBySize && !criticalByEntries && !criticalBySize) {
+    return null;
+  }
+
+  const severity: "warning" | "critical" = criticalByEntries || criticalBySize ? "critical" : "warning";
+  const thresholdType = severity === "critical" ? "hard" : "warning";
+  const alertKey = `log-threshold:${safeLogUsername(details.username)}:${details.yearMonth}:part-${details.part}:${thresholdType}`;
+  const now = Date.now();
+  const cooldownMs = ADMIN_ACTION_LOG_ALERT_COOLDOWN_HOURS * 60 * 60 * 1000;
+  const existingAlerts = await readAdminLogAlerts();
+
+  const recentDuplicate = existingAlerts.find((alert) => {
+    if (alert.alertKey !== alertKey) return false;
+    const alertTime = new Date(alert.timestamp).getTime();
+    return !Number.isNaN(alertTime) && now - alertTime < cooldownMs;
+  });
+
+  if (recentDuplicate) {
+    return recentDuplicate;
+  }
+
+  const alert: AdminConsoleAlert = {
+    id: `alert_${now}_${crypto.randomUUID()}`,
+    timestamp: new Date(now).toISOString(),
+    type: "ADMIN_LOG_THRESHOLD",
+    severity,
+    isRead: false,
+    alertKey,
+    title: severity === "critical" ? "Admin action log reached hard limit" : "Admin action log is getting large",
+    message:
+      severity === "critical"
+        ? `The action log for ${details.username} reached the hard threshold. Newer entries will rotate to the next monthly part when needed.`
+        : `The action log for ${details.username} is approaching the monthly threshold. Review or archive logs soon.`,
+    details: sanitizeLogDetails({
+      username: details.username,
+      path: details.path,
+      yearMonth: details.yearMonth,
+      part: details.part,
+      entryCount: details.entryCount,
+      maxEntries: MAX_ADMIN_ACTION_LOG_ITEMS,
+      warningEntries: ADMIN_ACTION_LOG_WARNING_ITEMS,
+      sizeBytes: details.sizeBytes,
+      sizeFormatted: formatBytes(details.sizeBytes),
+      warningSizeBytes: ADMIN_ACTION_LOG_WARNING_BYTES,
+      hardSizeBytes: ADMIN_ACTION_LOG_HARD_BYTES
+    })
+  };
+
+  const emailResult = await sendLogThresholdAlertEmail(alert);
+  alert.email = {
+    attempted: true,
+    success: emailResult.success,
+    realSent: emailResult.realSent,
+    recipients: emailResult.recipients,
+    error: emailResult.error || ""
+  };
+
+  await writeAdminLogAlerts([alert, ...existingAlerts]);
+  return alert;
+}
+
+async function resolveActiveMonthlyLogFile(username: string, date = new Date()) {
+  for (let part = 1; part <= ADMIN_ACTION_LOG_MAX_PARTS; part++) {
+    const path = getMonthlyUserLogPath(username, date, part);
+    const result = await readBlobJsonArray<AdminActionLogEntry>(path);
+
+    if (!result.exists) {
+      return { path, logs: [], part, sizeBytes: 0, yearMonth: getUtcYearMonth(date) };
+    }
+
+    if (result.items.length < MAX_ADMIN_ACTION_LOG_ITEMS && result.sizeBytes < ADMIN_ACTION_LOG_HARD_BYTES) {
+      return { path, logs: result.items, part, sizeBytes: result.sizeBytes, yearMonth: getUtcYearMonth(date) };
+    }
+  }
+
+  const fallbackPart = ADMIN_ACTION_LOG_MAX_PARTS + 1;
+  const fallbackPath = getMonthlyUserLogPath(username, date, fallbackPart);
+  return { path: fallbackPath, logs: [], part: fallbackPart, sizeBytes: 0, yearMonth: getUtcYearMonth(date) };
+}
+
+async function readAdminUserLogFile(username: string): Promise<AdminActionLogEntry[]> {
+  const latest = await readBlobJsonArray<AdminActionLogEntry>(getLatestUserLogPath(username));
+  if (latest.exists && latest.items.length > 0) return latest.items;
+
+  const legacy = await readBlobJsonArray<AdminActionLogEntry>(getLegacyUserLogPath(username));
+  if (legacy.exists && legacy.items.length > 0) return legacy.items;
+
+  return [];
+}
+
+async function readMonthlyAdminUserLogFiles(username: string, yearMonth = getUtcYearMonth()) {
+  const safeUsername = safeLogUsername(username);
+  const paths: string[] = [];
+  const logs: AdminActionLogEntry[] = [];
+
+  for (let part = 1; part <= ADMIN_ACTION_LOG_MAX_PARTS; part++) {
+    const suffix = part > 1 ? `-part-${part}` : "";
+    const path = `${ADMIN_ACTION_LOG_USER_FOLDER}/${safeUsername}/${yearMonth}${suffix}.json`;
+    const result = await readBlobJsonArray<AdminActionLogEntry>(path);
+
+    if (!result.exists) {
+      if (part === 1) continue;
+      break;
+    }
+
+    paths.push(path);
+    logs.push(...result.items);
+  }
+
+  logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return { yearMonth, paths, logs };
+}
+
+async function writeLatestUserLogFile(username: string, newEntry: AdminActionLogEntry) {
+  const latestPath = getLatestUserLogPath(username);
+  const latestResult = await readBlobJsonArray<AdminActionLogEntry>(latestPath);
+  const latestLogs = [newEntry, ...latestResult.items].slice(0, ADMIN_ACTION_LOG_LATEST_ITEMS);
+  return writeBlobJsonArray(latestPath, latestLogs);
+}
+
+async function writeMonthlyUserLogEntry(username: string, newEntry: AdminActionLogEntry, date = new Date()) {
+  const active = await resolveActiveMonthlyLogFile(username, date);
+  const updatedLogs = [newEntry, ...active.logs].slice(0, MAX_ADMIN_ACTION_LOG_ITEMS);
+  const monthlyLogFile = await writeBlobJsonArray(active.path, updatedLogs);
+  const latestLogFile = await writeLatestUserLogFile(username, newEntry);
+
+  const thresholdAlert = await createLogThresholdAlertIfNeeded({
+    username,
+    path: monthlyLogFile.path,
+    yearMonth: active.yearMonth,
+    part: active.part,
+    entryCount: monthlyLogFile.entryCount,
+    sizeBytes: monthlyLogFile.sizeBytes
+  });
+
+  return {
+    path: monthlyLogFile.path,
+    pathname: monthlyLogFile.pathname,
+    url: monthlyLogFile.url,
+    latestPath: latestLogFile.path,
+    latestUrl: latestLogFile.url,
+    yearMonth: active.yearMonth,
+    part: active.part,
+    entryCount: monthlyLogFile.entryCount,
+    sizeBytes: monthlyLogFile.sizeBytes,
+    sizeFormatted: formatBytes(monthlyLogFile.sizeBytes),
+    thresholdAlert
   };
 }
 
@@ -441,9 +732,7 @@ async function createAdminUserLogFile(
   newUser: AdminUser,
   createdBy?: AdminUser
 ) {
-  const usernameForPath = safeLogUsername(newUser.username);
-  const userLogPath = `${ADMIN_ACTION_LOG_USER_FOLDER}/${usernameForPath}.json`;
-  const previousLogs = await readAdminUserLogFile(newUser.username);
+  const userLogPath = getMonthlyUserLogPath(newUser.username);
 
   const firstEntry: AdminActionLogEntry = {
     id: `log_${Date.now()}_${crypto.randomUUID()}`,
@@ -466,13 +755,13 @@ async function createAdminUserLogFile(
     }
   };
 
-  const updatedLogs = [firstEntry, ...previousLogs].slice(0, MAX_ADMIN_ACTION_LOG_ITEMS);
-  const logFile = await writeAdminUserLogFile(newUser.username, updatedLogs);
+  const logFile = await writeMonthlyUserLogEntry(newUser.username, firstEntry);
 
-  console.log("Admin user log file created:", {
+  console.log("Admin user monthly log file created:", {
     username: newUser.username,
     pathname: logFile.pathname,
-    url: logFile.url
+    url: logFile.url,
+    latestPath: logFile.latestPath
   });
 
   return logFile;
@@ -496,8 +785,6 @@ async function appendCurrentAdminActionLog(
       return null;
     }
 
-    const previousLogs = await readAdminUserLogFile(currentUser.username);
-
     const newEntry: AdminActionLogEntry = {
       id: `log_${Date.now()}_${crypto.randomUUID()}`,
       timestamp: new Date().toISOString(),
@@ -514,8 +801,7 @@ async function appendCurrentAdminActionLog(
       details: sanitizeLogDetails(log.details || {})
     };
 
-    const updatedLogs = [newEntry, ...previousLogs].slice(0, MAX_ADMIN_ACTION_LOG_ITEMS);
-    const logFile = await writeAdminUserLogFile(currentUser.username, updatedLogs);
+    const logFile = await writeMonthlyUserLogEntry(currentUser.username, newEntry);
 
     return {
       ...logFile,
@@ -1526,10 +1812,13 @@ app.put("/api/auth/update-password", requireAdmin, async (req, res) => {
 app.get("/api/admin/users", requireAdmin, requireOwner, async (req, res) => {
   try {
     const users = await getAdminUsers();
+    const logAlerts = await readAdminLogAlerts();
 
     res.json({
       success: true,
-      users: users.map(publicAdminUser)
+      users: users.map(publicAdminUser),
+      logAlerts: logAlerts.slice(0, 20),
+      unreadLogAlertsCount: logAlerts.filter((alert) => !alert.isRead).length
     });
   } catch (error: any) {
     console.error("Load admin users failed:", error);
@@ -1849,30 +2138,127 @@ app.delete("/api/admin/users/:username", requireAdmin, requireOwner, async (req,
 app.get("/api/admin/users/:username/log", requireAdmin, requireOwner, async (req, res) => {
   try {
     const username = safeLogUsername(req.params.username);
-    const userLogPath = `${ADMIN_ACTION_LOG_USER_FOLDER}/${username}.json`;
+    const requestedMonth =
+      typeof req.query.month === "string" && /^\d{4}-\d{2}$/.test(req.query.month)
+        ? req.query.month
+        : getUtcYearMonth();
+    const includeMonthly = req.query.month !== undefined || req.query.full === "true";
 
-    const result = await get(userLogPath, { access: "public" });
+    const latestPath = getLatestUserLogPath(username);
+    const latestResult = await readBlobJsonArray<AdminActionLogEntry>(latestPath);
+    const legacyPath = getLegacyUserLogPath(username);
+    const legacyResult = latestResult.exists ? { exists: false, items: [] as AdminActionLogEntry[] } : await readBlobJsonArray<AdminActionLogEntry>(legacyPath);
+    const latestLogs = latestResult.exists ? latestResult.items : legacyResult.items;
 
-    if (!result || result.statusCode !== 200 || !result.stream) {
-      return res.status(404).json({
-        success: false,
-        error: "User log file not found.",
-        path: userLogPath
+    if (includeMonthly) {
+      const monthly = await readMonthlyAdminUserLogFiles(username, requestedMonth);
+
+      return res.json({
+        success: true,
+        username,
+        mode: "monthly",
+        month: requestedMonth,
+        latestPath,
+        paths: monthly.paths,
+        logs: monthly.logs,
+        latestLogs,
+        legacyPath: legacyResult.exists ? legacyPath : ""
       });
     }
 
-    const text = await new Response(result.stream).text();
-    const logs = JSON.parse(text);
+    if (!latestResult.exists && !legacyResult.exists) {
+      return res.status(404).json({
+        success: false,
+        error: "User log file not found.",
+        latestPath,
+        legacyPath
+      });
+    }
 
     return res.json({
       success: true,
-      path: userLogPath,
-      logs: Array.isArray(logs) ? logs : []
+      username,
+      mode: latestResult.exists ? "latest" : "legacy",
+      path: latestResult.exists ? latestPath : legacyPath,
+      latestPath,
+      legacyPath: legacyResult.exists ? legacyPath : "",
+      logs: latestLogs
     });
   } catch (error: any) {
     return res.status(500).json({
       success: false,
       error: error?.message || "Failed to read user log file."
+    });
+  }
+});
+
+app.get("/api/admin/log-alerts", requireAdmin, requireOwner, async (req, res) => {
+  try {
+    const alerts = await readAdminLogAlerts();
+
+    return res.json({
+      success: true,
+      alerts,
+      unreadCount: alerts.filter((alert) => !alert.isRead).length
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error?.message || "Failed to read admin log alerts."
+    });
+  }
+});
+
+app.put("/api/admin/log-alerts/:id/read", requireAdmin, requireOwner, async (req, res) => {
+  try {
+    const alertId = String(req.params.id || "");
+    const alerts = await readAdminLogAlerts();
+    const updatedAlerts = alerts.map((alert) =>
+      alert.id === alertId
+        ? {
+            ...alert,
+            isRead: true,
+            readAt: new Date().toISOString()
+          }
+        : alert
+    );
+
+    await writeAdminLogAlerts(updatedAlerts);
+
+    return res.json({
+      success: true,
+      alerts: updatedAlerts,
+      unreadCount: updatedAlerts.filter((alert) => !alert.isRead).length
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error?.message || "Failed to mark admin log alert as read."
+    });
+  }
+});
+
+app.put("/api/admin/log-alerts/read-all", requireAdmin, requireOwner, async (req, res) => {
+  try {
+    const readAt = new Date().toISOString();
+    const alerts = await readAdminLogAlerts();
+    const updatedAlerts = alerts.map((alert) => ({
+      ...alert,
+      isRead: true,
+      readAt: alert.readAt || readAt
+    }));
+
+    await writeAdminLogAlerts(updatedAlerts);
+
+    return res.json({
+      success: true,
+      alerts: updatedAlerts,
+      unreadCount: 0
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error?.message || "Failed to mark admin log alerts as read."
     });
   }
 });
