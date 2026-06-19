@@ -450,6 +450,114 @@ async function sendResetCodeEmail(toEmail: string, code: string): Promise<{ succ
   }
 }
 
+
+//Send welcome email when created new user
+
+async function sendAdminInviteEmail(
+  toEmail: string,
+  invite: {
+    username: string;
+    displayName: string;
+    role: string;
+    createdBy?: string;
+  }
+): Promise<{ success: boolean; realSent: boolean; error?: string }> {
+  try {
+    const transporter = getMailTransporter();
+
+    if (!transporter) {
+      console.warn("SMTP credentials not configured. Admin invite email simulated only.");
+      return { success: true, realSent: false };
+    }
+
+    const cleanEnvStr = (val?: string): string => {
+      if (!val) return "";
+      return val.replace(/^["']|["']$/g, "").trim();
+    };
+
+    const senderEmail = cleanEnvStr(process.env.SMTP_USER || "biotechagro.digital@gmail.com");
+    const senderName = "Biotech Agro Administration";
+
+    const safeDisplayName = invite.displayName || invite.username;
+    const safeRole = invite.role.toUpperCase();
+
+    const mailOptions = {
+      from: `"${senderName}" <${senderEmail}>`,
+      to: toEmail,
+      subject: "Welcome to the Biotech Agro Admin Console",
+      text: `Hello ${safeDisplayName},
+
+Welcome to Biotech Agro.
+
+An administrator account has been created for you on the Biotech Agro website console.
+
+Account details:
+Username: ${invite.username}
+Role: ${safeRole}
+
+For security reasons, your password is not included in this email.
+
+Please contact the website administrator to receive your temporary password and access instructions.
+
+After your first login, we recommend changing your password from the admin console.
+
+Best regards,
+Biotech Agro Administration`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 30px; background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 18px; color: #1c1917;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-block; padding: 14px; background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 50%; font-size: 28px;">
+              🔬
+            </div>
+            <h2 style="margin: 12px 0 4px; font-size: 22px;">Welcome to Biotech Agro</h2>
+            <p style="margin: 0; color: #047857; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">
+              Website Admin Console Invitation
+            </p>
+          </div>
+
+          <p style="font-size: 14px; line-height: 1.6;">Hello <strong>${safeDisplayName}</strong>,</p>
+
+          <p style="font-size: 14px; line-height: 1.6;">
+            An administrator account has been created for you on the Biotech Agro website console.
+          </p>
+
+          <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 14px; padding: 18px; margin: 20px 0;">
+            <p style="margin: 0 0 10px; font-size: 13px;"><strong>Username:</strong> ${invite.username}</p>
+            <p style="margin: 0; font-size: 13px;"><strong>Role:</strong> ${safeRole}</p>
+          </div>
+
+          <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 14px; margin: 20px 0; font-size: 13px; line-height: 1.6; color: #7c2d12;">
+            <strong>Security notice:</strong> your password is not included in this email.
+            Please contact the website administrator to receive your temporary password and access instructions.
+          </div>
+
+          <p style="font-size: 13px; line-height: 1.6; color: #57534e;">
+            After your first login, we recommend changing your password from the admin console.
+          </p>
+
+          <div style="border-top: 1px solid #e7e5e4; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #78716c; text-align: center;">
+            Biotech Agro Administration
+          </div>
+        </div>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Admin invite email sent to ${toEmail}. MessageID: ${info.messageId}`);
+
+    return { success: true, realSent: true };
+  } catch (error: any) {
+    console.error("Failed to send admin invite email:", error);
+
+    return {
+      success: false,
+      realSent: false,
+      error: error.message || String(error)
+    };
+  }
+}
+
+
 // Highly stylized secure HTML contact inquiry mailing helper
 async function sendContactInquiryEmail(adminEmail: string, inquiry: { senderName: string; senderEmail: string; senderPhone?: string; subject: string; message: string }): Promise<{ success: boolean; realSent: boolean; error?: string }> {
   try {
@@ -1181,11 +1289,25 @@ app.post("/api/admin/users", requireAdmin, requireOwner, async (req, res) => {
 
     await writeAdminUsersToBlob(users);
 
+
+    const currentUser = (req as any).adminUser as AdminUser | undefined;
+
+const inviteEmailResult = await sendAdminInviteEmail(newUser.email, {
+  username: newUser.username,
+  displayName: newUser.displayName,
+  role: newUser.role,
+  createdBy: currentUser?.username
+});
+
     res.status(201).json({
-      success: true,
-      user: publicAdminUser(newUser),
-      users: users.map(publicAdminUser)
-    });
+  success: true,
+  user: publicAdminUser(newUser),
+  inviteEmail: {
+    success: inviteEmailResult.success,
+    realSent: inviteEmailResult.realSent,
+    error: inviteEmailResult.error || ""
+  }
+});
   } catch (error: any) {
     console.error("Create admin user failed:", error);
 

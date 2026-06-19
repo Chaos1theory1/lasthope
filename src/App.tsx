@@ -832,6 +832,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const [adminUsers, setAdminUsers] = useState<AdminPanelUser[]>([]);
   const [isLoadingAdminUsers, setIsLoadingAdminUsers] = useState(false);
   const [adminUsersError, setAdminUsersError] = useState("");
+  const [adminUsersNotice, setAdminUsersNotice] = useState("");
   const [adminActionMessage, setAdminActionMessage] = useState("");
   const [newAdminUserForm, setNewAdminUserForm] = useState({
     username: "",
@@ -1074,43 +1075,65 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   };
 
   const handleCreateAdminUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+
+  try {
+    setAdminUsersError("");
+    setAdminUsersNotice("");
+
+    const response = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`
+      },
+      body: JSON.stringify(newAdminUserForm)
+    });
+
+    let data: any = {};
 
     try {
-      setAdminUsersError("");
-      setAdminActionMessage("");
-
-      const response = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
-        },
-        body: JSON.stringify(newAdminUserForm)
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        setAdminUsersError(data.error || `Failed to create admin user. Server status: ${response.status}`);
-        return;
-      }
-
-      setNewAdminUserForm({
-        username: "",
-        displayName: "",
-        email: "",
-        password: "",
-        role: "editor"
-      });
-
-      setAdminUsers(data.users || []);
-      setAdminActionMessage("Admin user created and saved to Vercel Blob JSON.");
-      loadAdminUsers();
-    } catch (error) {
-      setAdminUsersError("Network error while creating admin user.");
+      data = await response.json();
+    } catch (_) {
+      data = {};
     }
-  };
+
+    if (!response.ok) {
+      setAdminUsersError(data.error || "Failed to create admin user.");
+      return;
+    }
+
+    const createdEmail = data.user?.email || newAdminUserForm.email;
+
+    if (data.inviteEmail?.realSent) {
+      setAdminUsersNotice(
+        `User created successfully and invitation email sent to ${createdEmail}.`
+      );
+    } else if (data.inviteEmail?.success && data.inviteEmail?.realSent === false) {
+      setAdminUsersNotice(
+        `User created successfully, but invitation email was not sent because SMTP is not configured. Please contact the user manually.`
+      );
+    } else if (data.inviteEmail?.error) {
+      setAdminUsersNotice(
+        `User created successfully, but invitation email failed: ${data.inviteEmail.error}`
+      );
+    } else {
+      setAdminUsersNotice("User created successfully.");
+    }
+
+    setNewAdminUserForm({
+      username: "",
+      displayName: "",
+      email: "",
+      password: "",
+      role: "admin"
+    });
+
+    loadAdminUsers();
+  } catch (error) {
+    setAdminUsersError("Network error while creating admin user.");
+  }
+};
 
   const handleToggleAdminUserStatus = async (user: AdminPanelUser) => {
     if (user.username === currentAdminUser?.username) {
@@ -2299,6 +2322,12 @@ const handleUploadHeroBackground = async (file: File) => {
             Refresh Users
           </button>
         </div>
+
+        {adminUsersNotice && (
+  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs">
+    {adminUsersNotice}
+  </div>
+)}
 
         {adminUsersError && (
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
