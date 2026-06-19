@@ -3963,7 +3963,7 @@ const handleUploadHeroBackground = async (file: File) => {
 
                 {/* Secure certificate box */}
                 <div className="p-4 bg-stone-950 text-stone-100 rounded-2xl border border-stone-800 space-y-2">
-                  <span className="text-[9px] font-mono text-emerald-400 font-bold tracking-wider block">TUNISIA MYCELIUM BIOTECH</span>
+                  <span className="text-[9px] font-mono text-emerald-400 font-bold tracking-wider block"> MYCELIUM BIOTECH AGRO</span>
                   <h4 className="text-xs font-bold">🛡️ Authenticity Verification Certificate</h4>
                   <p className="text-[11px] text-stone-400 font-light leading-relaxed">
                     This single jar, spawn bag or grow kit contains active, contaminant-free mycelium inoculated inside our premium sterile cleanrooms in Tunisia. Substrate sterilization completed under 121°C autoclaving.
