@@ -6,7 +6,112 @@ import fs from "fs";
 import crypto from "crypto";
 import { GoogleGenAI } from "@google/genai";
 import nodemailer from "nodemailer";
-import { put, get } from "@vercel/blob";
+import { supabase } from "@/lib/supabase";
+import { uploadMedia } from "@/lib/uploadMedia";
+
+
+export async function createProduct(formData: {
+  title_fr: string;
+  title_ar?: string;
+  title_en?: string;
+  description_fr?: string;
+  description_ar?: string;
+  description_en?: string;
+  imageFile?: File;
+}) {
+  let image_path = null;
+  let image_url = null;
+
+  if (formData.imageFile) {
+    const uploaded = await uploadMedia(formData.imageFile, "products");
+    image_path = uploaded.path;
+    image_url = uploaded.url;
+  }
+
+  const { data, error } = await supabase
+    .from("site_items")
+    .insert({
+      type: "product",
+      title_fr: formData.title_fr,
+      title_ar: formData.title_ar,
+      title_en: formData.title_en,
+      description_fr: formData.description_fr,
+      description_ar: formData.description_ar,
+      description_en: formData.description_en,
+      image_path,
+      image_url,
+      is_active: true,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getProducts() {
+  const { data, error } = await supabase
+    .from("site_items")
+    .select("*")
+    .eq("type", "product")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+
+export async function getServices() {
+  const { data, error } = await supabase
+    .from("site_items")
+    .select("*")
+    .eq("type", "service")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+
+export async function uploadMedia(file: File, folder: "products" | "services" | "logos") {
+  const safeName = file.name
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, "-");
+
+  const filePath = `${folder}/${crypto.randomUUID()}-${safeName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("media")
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = supabase.storage
+    .from("media")
+    .getPublicUrl(filePath);
+
+  return {
+    path: filePath,
+    url: data.publicUrl,
+  };
+}
 
 const app = express();
 // Middleware to parse huge JSON bodies (for user base64 photo uploads up to 20MB)

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createClient, type User } from "@supabase/supabase-js";
 import {
   Sprout,
   ShieldCheck,
@@ -42,6 +43,16 @@ import Footer from "./components/Footer";
 import GoogleDriveVault from "./components/GoogleDriveVault";
 import { Product, Service, ContactMessage, SiteContent, DatabaseState, ProductCategory, ProductStatus, TeamMember, Certification, FeatureItem, CatalogSection, GalleryImage } from "./types";
 import { i18n } from "./translations";
+
+const ADMIN_EMAIL = "biotechagro.digital@gmail.com";
+const SUPABASE_MEDIA_BUCKET = "media";
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", supabaseAnonKey || "placeholder-anon-key");
+
+
 
 
 // Floating-overlay or in-place inline text editor for admin live editing
@@ -567,7 +578,7 @@ function EditableImage({
               <div>
                 <h3 className="text-sm font-bold text-stone-900">Change image</h3>
                 <p className="text-xs text-stone-500 mt-1">
-                  Upload from your computer to Vercel Blob, or paste an image URL.
+                  Upload from your computer to Supabase Storage, or paste an image URL.
                 </p>
               </div>
 
@@ -598,7 +609,7 @@ function EditableImage({
                 {isUploading ? (
                   <>
                     <Loader2 size={15} className="animate-spin" />
-                    Uploading to Blob...
+                    Uploading to Supabase...
                   </>
                 ) : (
                   <>
@@ -636,7 +647,7 @@ function EditableImage({
               </button>
 
               <p className="text-[10px] text-stone-400">
-                URL images are not copied to Blob. They stay hosted on the external source.
+                URL images are not copied to Supabase Storage. They stay hosted on the external source.
               </p>
             </div>
 
@@ -778,6 +789,20 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   }
 }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("admin") === "1") {
+      setActivePage("admin");
+      params.delete("admin");
+
+      const cleanQuery = params.toString();
+      const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ""}`;
+
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
+
   // Sync active language text direction for RTL (Arabic) or LTR (French/English)
   useEffect(() => {
     if (currentLanguage === "ar" && activePage !== "admin") {
@@ -807,9 +832,12 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const [messageError, setMessageError] = useState<string>("");
 
   // Admin authentication states
-  const [adminUsername, setAdminUsername] = useState<string>("");
+  const [adminUsername, setAdminUsername] = useState<string>(ADMIN_EMAIL);
   const [adminPassword, setAdminPassword] = useState<string>("");
   const [authToken, setAuthToken] = useState<string>(() => localStorage.getItem("myco_admin_token") || "");
+  const [authMode, setAuthMode] = useState<"legacy" | "supabase" | null>(() => localStorage.getItem("myco_admin_token") ? "legacy" : null);
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [magicLinkNotice, setMagicLinkNotice] = useState<string>("");
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string>("");
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
@@ -970,11 +998,21 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const getLegacyOwnerFallback = (username = "admin"): AdminPanelUser => ({
     username,
     displayName: username === "admin" ? "Main Admin" : username,
-    email: adminSecEmail || "biotechagro.digital@gmail.com",
+    email: adminSecEmail || ADMIN_EMAIL,
     role: username === "admin" ? "owner" : "admin",
     isActive: true,
     createdAt: "",
     lastLogin: secLastLogin || ""
+  });
+
+  const buildSupabaseAdminUser = (user: User): AdminPanelUser => ({
+    username: "admin",
+    displayName: "BiotechAgro Admin",
+    email: user.email || ADMIN_EMAIL,
+    role: "owner",
+    isActive: true,
+    createdAt: user.created_at || "",
+    lastLogin: new Date().toISOString()
   });
 
   const verifyTokenAndLoadInbox = async (token: string) => {
@@ -1292,10 +1330,80 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
 
   useEffect(() => {
-    if (authToken) {
+    if (authToken && authMode !== "supabase") {
       verifyTokenAndLoadInbox(authToken);
     }
-  }, [authToken]);
+  }, [authToken, authMode]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const applySupabaseSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      const user = session?.user || null;
+
+      if (!isMounted || !user) return;
+
+      if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+        await supabase.auth.signOut();
+        setLoginError("This Supabase account is not authorized as admin.");
+        return;
+      }
+
+      setSupabaseUser(user);
+      setAuthMode("supabase");
+      setAuthToken(session?.access_token || "");
+      setIsAdminLoggedIn(true);
+      setCurrentAdminUser(buildSupabaseAdminUser(user));
+      setAdminSecEmail(ADMIN_EMAIL);
+      setAdminPassword("");
+      setAdminUsername(ADMIN_EMAIL);
+      setLoginError("");
+      setMagicLinkNotice("");
+    };
+
+    applySupabaseSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user || null;
+
+      if (!user) {
+        if (authMode === "supabase") {
+          setSupabaseUser(null);
+          setAuthMode(null);
+          setAuthToken("");
+          setIsAdminLoggedIn(false);
+          setCurrentAdminUser(null);
+          setAdminMessages([]);
+          setAdminUsers([]);
+        }
+        return;
+      }
+
+      if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+        supabase.auth.signOut();
+        setLoginError("This Supabase account is not authorized as admin.");
+        return;
+      }
+
+      setSupabaseUser(user);
+      setAuthMode("supabase");
+      setAuthToken(session?.access_token || "");
+      setIsAdminLoggedIn(true);
+      setCurrentAdminUser(buildSupabaseAdminUser(user));
+      setAdminSecEmail(ADMIN_EMAIL);
+      setAdminPassword("");
+      setAdminUsername(ADMIN_EMAIL);
+      setLoginError("");
+      setMagicLinkNotice("");
+    });
+
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [authMode]);
 
   // Online-admin heartbeat removed intentionally.
   // This avoids repeated background database writes.
@@ -1346,47 +1454,53 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
+    setMagicLinkNotice("");
     setIsLoggingIn(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: adminUsername, password: adminPassword })
-      });
-      const data = await response.json();
-      if (response.ok && data.token) {
-        const loggedUser: AdminPanelUser = data.user || getLegacyOwnerFallback(data.username || adminUsername || "admin");
-
-        localStorage.setItem("myco_admin_token", data.token);
-        setAuthToken(data.token);
-        setIsAdminLoggedIn(true);
-        setCurrentAdminUser(loggedUser);
-        setAdminPassword("");
-        setAdminUsername("");
-        loadAdminInbox(data.token);
-        loadAdminSettings(data.token);
-
-        if (loggedUser.role === "owner") {
-          loadAdminUsers(data.token);
-        }
-      } else {
-        setLoginError(data.error || "Invalid username or password.");
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setLoginError("Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+        return;
       }
-    } catch (err) {
-      setLoginError("Failed to reach server. Please try again.");
+
+      const email = adminUsername.trim().toLowerCase();
+
+      if (email !== ADMIN_EMAIL) {
+        setLoginError(`Only ${ADMIN_EMAIL} is authorized for admin access.`);
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email: ADMIN_EMAIL,
+        options: {
+          emailRedirectTo: `${window.location.origin}${window.location.pathname}?admin=1`
+        }
+      });
+
+      if (error) {
+        setLoginError(error.message);
+        return;
+      }
+
+      setMagicLinkNotice("Magic login link sent. Open the BiotechAgro email inbox and click the link.");
+    } catch (err: any) {
+      setLoginError(err?.message || "Failed to send Supabase magic link.");
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem("myco_admin_token");
+    setAuthMode(null);
+    setSupabaseUser(null);
     setAuthToken("");
     setIsAdminLoggedIn(false);
     setCurrentAdminUser(null);
     setAdminUsers([]);
     setAdminMessages([]);
+    setMagicLinkNotice("");
     if (activePage === "admin") {
       setActivePage("home");
     }
@@ -1771,60 +1885,80 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       alert("Error contacting server.");
     }
   };
-  // Base64 file converter for product/service image upload
+  // Supabase Storage uploader for product/service/content images
 const uploadFileToBlob = async (
   file: File,
   folder: BlobFolder = "content",
   maxDim: number = 1200
 ): Promise<string> => {
-  if (!authToken) {
-    throw new Error("Please log in as admin before uploading images.");
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const user = userData.user;
+
+  if (userError || !user) {
+    throw new Error("Please log in with the Supabase admin magic link before uploading images.");
+  }
+
+  if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+    throw new Error("This account is not authorized to upload media.");
   }
 
   if (file.size > 15 * 1024 * 1024) {
     throw new Error("Image is too large. Please upload an image smaller than 15 MB.");
   }
 
-  const originalDataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
+  const safeBaseName = file.name
+    .toLowerCase()
+    .replace(/[^a-z0-9.]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 
-    reader.readAsDataURL(file);
+  const isSvg = file.type === "image/svg+xml" || safeBaseName.endsWith(".svg");
 
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-      } else {
-        reject(new Error("Invalid image file."));
-      }
-    };
+  let uploadBody: Blob | File = file;
+  let extension = isSvg ? "svg" : "jpg";
+  let contentType = isSvg ? "image/svg+xml" : "image/jpeg";
 
-    reader.onerror = () => reject(new Error("Could not read image file."));
-  });
+  if (!isSvg) {
+    const originalDataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
 
-  const dataUrl = originalDataUrl.startsWith("data:image/svg+xml")
-    ? originalDataUrl
-    : await resizeImage(originalDataUrl, maxDim);
+      reader.readAsDataURL(file);
 
-  const response = await fetch("/api/media/upload", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`
-    },
-    body: JSON.stringify({
-      dataUrl,
-      filename: file.name,
-      folder
-    })
-  });
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+        } else {
+          reject(new Error("Invalid image file."));
+        }
+      };
 
-  const data = await response.json();
+      reader.onerror = () => reject(new Error("Could not read image file."));
+    });
 
-  if (!response.ok) {
-    throw new Error(data.error || "Image upload failed.");
+    const resizedDataUrl = await resizeImage(originalDataUrl, maxDim);
+    const resizedResponse = await fetch(resizedDataUrl);
+    uploadBody = await resizedResponse.blob();
   }
 
-  return data.url;
+  const filePath = `${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(SUPABASE_MEDIA_BUCKET)
+    .upload(filePath, uploadBody, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType
+    });
+
+  if (uploadError) {
+    throw new Error(uploadError.message || "Supabase Storage upload failed.");
+  }
+
+  const { data } = supabase.storage
+    .from(SUPABASE_MEDIA_BUCKET)
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
 };
 
 
@@ -2591,7 +2725,7 @@ const handleUploadHeroBackground = async (file: File) => {
             Change Home Background
           </h3>
           <p className="text-xs text-stone-500 mt-1">
-            Upload a new background to database, or paste an external image URL.
+            Upload a new background to Supabase Storage, or paste an external image URL.
           </p>
         </div>
 
@@ -2824,7 +2958,7 @@ const handleUploadHeroBackground = async (file: File) => {
                     Add Gallery Picture
                   </h3>
                   <p className="text-xs text-stone-500 mt-1">
-                    Upload a new picture to Vercel Blob, or paste an existing Blob/image URL.
+                    Upload a new picture to Supabase Storage, or paste an existing public image URL.
                   </p>
                 </div>
 
@@ -2843,7 +2977,7 @@ const handleUploadHeroBackground = async (file: File) => {
 
               <div className="border border-stone-200 rounded-xl p-4 space-y-3">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">
-                  Option 1 — Upload from device to Blob gallery
+                  Option 1 — Upload from device to Supabase gallery
                 </p>
 
                 <input
@@ -2865,7 +2999,7 @@ const handleUploadHeroBackground = async (file: File) => {
                 {isGalleryUploading && (
                   <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-2">
                     <Loader2 size={12} className="animate-spin" />
-                    Uploading picture to Vercel Blob gallery...
+                    Uploading picture to Supabase gallery...
                   </p>
                 )}
 
@@ -2883,7 +3017,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   type="url"
                   value={galleryUrlInput}
                   onChange={(e) => setGalleryUrlInput(e.target.value)}
-                  placeholder="https://xxxxx.public.blob.vercel-storage.com/gallery/image.webp"
+                  placeholder="https://your-public-image-url.example/gallery/image.webp"
                   className="w-full rounded-lg border border-stone-250 bg-white px-3 py-2 text-xs text-stone-800 outline-none focus:border-emerald-500"
                 />
 
@@ -2898,7 +3032,7 @@ const handleUploadHeroBackground = async (file: File) => {
                 </button>
 
                 <p className="text-[10px] text-stone-400">
-                  Use this for images already uploaded to Vercel Blob or another public image URL.
+                  Use this for images already uploaded to Supabase Storage or another public image URL.
                 </p>
               </div>
             </div>
@@ -5322,7 +5456,7 @@ const handleUploadHeroBackground = async (file: File) => {
                         <Lock className="w-6 h-6" />
                       </div>
                       <h1 className="font-display text-2xl font-bold text-stone-900">Lab Administration Log In</h1>
-                      <p className="text-xs text-stone-400">Enter secure laboratory credentials to manage catalog and copy decks.</p>
+                      <p className="text-xs text-stone-400">Use the authorized Supabase admin email to manage media and content.</p>
                     </div>
 
                     <form onSubmit={handleLoginSubmit} className="space-y-4">
@@ -5333,31 +5467,28 @@ const handleUploadHeroBackground = async (file: File) => {
                         </div>
                       )}
 
+                      {magicLinkNotice && (
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-mono flex items-center gap-2">
+                          <Mail className="w-4 h-4 shrink-0" />
+                          <span>{magicLinkNotice}</span>
+                        </div>
+                      )}
+
                       <div className="space-y-1">
-                        <label className="text-xs font-medium text-stone-700 block">Username *</label>
+                        <label className="text-xs font-medium text-stone-700 block">Admin email *</label>
                         <input
-                          type="text"
+                          type="email"
                           required
                           value={adminUsername}
                           onChange={(e) => setAdminUsername(e.target.value)}
                           className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-emerald-700 transition-all font-light"
-                          placeholder="username/email"
+                          placeholder={ADMIN_EMAIL}
                         />
                       </div>
 
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-stone-700 block font-sans">Password or Access Code *</label>
-                        <input
-                          type="password"
-                          required
-                          value={adminPassword}
-                          onChange={(e) => setAdminPassword(e.target.value)}
-                          className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-emerald-700 transition-all font-mono"
-                          placeholder="••••••••"
-                        />
+                      <div className="rounded-xl bg-stone-50 border border-stone-200 p-3 text-[11px] leading-relaxed text-stone-500">
+                        Supabase will send a secure magic link to <strong>{ADMIN_EMAIL}</strong>. After clicking the link, return to this admin panel.
                       </div>
-
-                      
 
                       <button
                         type="submit"
@@ -5367,25 +5498,12 @@ const handleUploadHeroBackground = async (file: File) => {
                         {isLoggingIn ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            Verifying lab security...
+                            Sending magic link...
                           </>
                         ) : (
-                          "Sign In to Console"
+                          "Send Supabase Magic Link"
                         )}
                       </button>
-
-                      <div className="pt-2 border-t border-stone-150">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowForgotPassword(true);
-                            setResetEmail("");
-                          }}
-                          className="w-full text-center text-xs text-emerald-800 hover:text-emerald-900 hover:underline font-medium transition-all"
-                        >
-                          Forgot Password / Reset Settings?
-                        </button>
-                      </div>
                     </form>
                   </>
                 ) : (
