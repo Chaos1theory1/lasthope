@@ -258,7 +258,9 @@ gallery_subtitle: "نظرة مرئية على المختبر، إنتاج الم
     // Hero
    badge: "PIONNIER DE LA BIOTECH EN TUNISIE",
 title: "Cultiver le potentiel infini du mycélium",
-subtitle: "Nous valorisons les co-produits agricoles tunisiens—comme les coques d'olives et les grains de blé—en blanc de semis de qualité supérieure et en biomatériaux compostables. Autonomiser les producteurs régionaux.",
+subtitle: "Biotech-Agro est une entreprise tunisienne innovante spécialisée en biotechnologie mycologique, dédiée à la digitalisation complète des processus de production, de suivi et de contrôle qualité des cultures fongiques. Nous intégrons des solutions numériques avancées à chaque étape de la chaîne de valeur de la myciculture afin de garantir la performance, la traçabilité et la standardisation industrielle.
+Moins cher, plus frais, qualité certifiée. 
+Nos produits sont cultivés localement en Tunisie, offrant une alternative plus économique, plus fraîche et de qualité supérieure aux semences importées. Chaque lot est rigoureusement contrôlé pour assurer une pureté et une vitalité optimales, garantissant ainsi des rendements élevés et une satisfaction client maximale.",
 hero_title: "Cultiver le potentiel infini du mycélium",
 hero_subtitle: "Nous valorisons les co-produits agricoles tunisiens—comme les coques d'olives et les grains de blé—en blanc de semis de qualité supérieure et en biomatériaux compostables. Autonomiser les producteurs régionaux.",
 primaryCta: "Découvrir Nos Produits",
