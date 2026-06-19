@@ -5482,7 +5482,7 @@ const handleUploadHeroBackground = async (file: File) => {
                         <Lock className="w-6 h-6" />
                       </div>
                       <h1 className="font-display text-2xl font-bold text-stone-900">Lab Administration Log In</h1>
-                      <p className="text-xs text-stone-400">Use the authorized Supabase admin email to manage media and content.</p>
+                      <p className="text-xs text-stone-400">Use the authorized admin email to manage media and content.</p>
                     </div>
 
                     <form onSubmit={handleLoginSubmit} className="space-y-4">
@@ -5508,12 +5508,12 @@ const handleUploadHeroBackground = async (file: File) => {
                           value={adminUsername}
                           onChange={(e) => setAdminUsername(e.target.value)}
                           className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-emerald-700 transition-all font-light"
-                          placeholder={ADMIN_EMAIL}
+                          placeholder="Enter your Email"
                         />
                       </div>
 
                       <div className="rounded-xl bg-stone-50 border border-stone-200 p-3 text-[11px] leading-relaxed text-stone-500">
-                        Supabase will send a secure magic link to <strong>{ADMIN_EMAIL}</strong>. After clicking the link, return to this admin panel.
+                        Login Link will be sent to admin Email. After clicking the link, return to this admin panel.
                       </div>
 
                       <button
@@ -5524,7 +5524,7 @@ const handleUploadHeroBackground = async (file: File) => {
                         {isLoggingIn ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            Sending magic link...
+                            Let the magic happen...
                           </>
                         ) : (
                           "Send Supabase Magic Link"
