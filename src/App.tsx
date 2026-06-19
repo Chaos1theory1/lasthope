@@ -423,7 +423,7 @@ function getProductLocalizedValue(
   return defaultValue;
 }
 
-type BlobFolder =
+type MediaFolder =
   | "products"
   | "services"
   | "logos"
@@ -445,7 +445,7 @@ function EditableImage({
   alt = "",
   maxDim = 800,
   uploadImage,
-  blobFolder = "content"
+  mediaFolder = "content"
 }: {
   src: string;
   onSave: (newSrc: string) => void;
@@ -453,8 +453,8 @@ function EditableImage({
   className?: string;
   alt?: string;
   maxDim?: number;
-  uploadImage?: (file: File, folder: BlobFolder, maxDim: number) => Promise<string>;
-  blobFolder?: BlobFolder;
+  uploadImage?: (file: File, folder: MediaFolder, maxDim: number) => Promise<string>;
+  mediaFolder?: MediaFolder;
 }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isPanelOpen, setIsPanelOpen] = React.useState(false);
@@ -485,9 +485,9 @@ function EditableImage({
       setIsUploading(true);
 
       if (uploadImage) {
-        const blobUrl = await uploadImage(file, blobFolder, maxDim);
-        onSave(blobUrl);
-        setUrlValue(blobUrl);
+        const mediaUrl = await uploadImage(file, mediaFolder, maxDim);
+        onSave(mediaUrl);
+        setUrlValue(mediaUrl);
       } else {
         const reader = new FileReader();
 
@@ -1351,9 +1351,11 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         return;
       }
 
+      const token = session?.access_token || "";
+
       setSupabaseUser(user);
       setAuthMode("supabase");
-      setAuthToken(session?.access_token || "");
+      setAuthToken(token);
       setIsAdminLoggedIn(true);
       setCurrentAdminUser(buildSupabaseAdminUser(user));
       setAdminSecEmail(ADMIN_EMAIL);
@@ -1361,6 +1363,12 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       setAdminUsername(ADMIN_EMAIL);
       setLoginError("");
       setMagicLinkNotice("");
+
+      if (token) {
+        loadAdminInbox(token);
+        loadAdminSettings(token);
+        loadAdminUsers(token);
+      }
     };
 
     applySupabaseSession();
@@ -1387,9 +1395,11 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         return;
       }
 
+      const token = session?.access_token || "";
+
       setSupabaseUser(user);
       setAuthMode("supabase");
-      setAuthToken(session?.access_token || "");
+      setAuthToken(token);
       setIsAdminLoggedIn(true);
       setCurrentAdminUser(buildSupabaseAdminUser(user));
       setAdminSecEmail(ADMIN_EMAIL);
@@ -1397,6 +1407,12 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       setAdminUsername(ADMIN_EMAIL);
       setLoginError("");
       setMagicLinkNotice("");
+
+      if (token) {
+        loadAdminInbox(token);
+        loadAdminSettings(token);
+        loadAdminUsers(token);
+      }
     });
 
     return () => {
@@ -1886,9 +1902,9 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
     }
   };
   // Supabase Storage uploader for product/service/content images
-const uploadFileToBlob = async (
+const uploadMedia = async (
   file: File,
-  folder: BlobFolder = "content",
+  folder: MediaFolder = "content",
   maxDim: number = 1200
 ): Promise<string> => {
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -1979,7 +1995,7 @@ const handleAddGalleryImage = async (file: File) => {
   try {
     setIsGalleryUploading(true);
 
-    const url = await uploadFileToBlob(file, "gallery", 1600);
+    const url = await uploadMedia(file, "gallery", 1600);
 
     const newImage: GalleryImage = {
       id: "gallery_" + Date.now(),
@@ -2014,10 +2030,10 @@ const handleRemoveGalleryImage = async (imageId: string) => {
 const handleImageUpload = async (
   file: File,
   callback: (url: string) => void,
-  folder: BlobFolder = "products"
+  folder: MediaFolder = "products"
 ) => {
   try {
-    const url = await uploadFileToBlob(file, folder, 1200);
+    const url = await uploadMedia(file, folder, 1200);
     callback(url);
   } catch (error: any) {
     console.error("Image upload failed:", error);
@@ -2180,7 +2196,7 @@ const handleUploadHeroBackground = async (file: File) => {
   try {
     setIsHeroBgUploading(true);
 
-    const url = await uploadFileToBlob(file, "home", 1800);
+    const url = await uploadMedia(file, "home", 1800);
 
     await handleUpdateTextSection(
       "hero",
@@ -3173,6 +3189,7 @@ const handleUploadHeroBackground = async (file: File) => {
                         src={siteContent.about.choosePhaseImage1}
                         onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage1: newImg }, false)}
                         isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                         maxDim={800}
                         className="w-full h-full object-cover"
                         alt="Custom image upload card"
@@ -3291,6 +3308,7 @@ const handleUploadHeroBackground = async (file: File) => {
                         src={siteContent.about.choosePhaseImage2}
                         onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage2: newImg }, false)}
                         isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                         maxDim={800}
                         className="w-full h-full object-cover"
                         alt="Custom image upload card"
@@ -3409,6 +3427,7 @@ const handleUploadHeroBackground = async (file: File) => {
                         src={siteContent.about.choosePhaseImage3}
                         onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage3: newImg }, false)}
                         isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                         maxDim={800}
                         className="w-full h-full object-cover"
                         alt="Custom image upload card"
@@ -3527,6 +3546,7 @@ const handleUploadHeroBackground = async (file: File) => {
                         src={siteContent.about.choosePhaseImage4}
                         onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, choosePhaseImage4: newImg }, false)}
                         isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                         maxDim={800}
                         className="w-full h-full object-cover"
                         alt="Custom image upload card"
@@ -3718,6 +3738,7 @@ const handleUploadHeroBackground = async (file: File) => {
                       src={siteContent.about.biotechImage}
                       onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, biotechImage: newImg }, false)}
                       isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                       className="w-full h-full max-h-[600px] object-cover rounded-2xl"
                       alt="Biotechnology Process Diagram"
                     />
@@ -4279,6 +4300,7 @@ const handleUploadHeroBackground = async (file: File) => {
                     handleUpdateTextSection("about", { ...siteContent.about, ...updateObj }, true);
                   }}
                   isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                   maxDim={600}
                   className="h-full w-full object-contain rounded-2xl"
                 />
@@ -4312,6 +4334,7 @@ const handleUploadHeroBackground = async (file: File) => {
                       src={siteContent.about.missionImage}
                       onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, missionImage: newImg }, false)}
                       isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                       className="w-full h-full object-cover rounded-xl"
                       alt="Mission Graphics"
                     />
@@ -4421,6 +4444,7 @@ const handleUploadHeroBackground = async (file: File) => {
                       src={siteContent.about.visionImage}
                       onSave={(newImg) => handleUpdateTextSection("about", { ...siteContent.about, visionImage: newImg }, false)}
                       isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                       className="w-full h-full object-cover rounded-xl"
                       alt="Vision Graphics"
                     />
@@ -4559,6 +4583,7 @@ const handleUploadHeroBackground = async (file: File) => {
                         src={member.image || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300"}
                         onSave={(newImg) => handleUpdateTeamMember(member.id, { image: newImg })}
                         isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                         className="w-full h-full object-cover"
                         alt={member.name}
                       />
@@ -4643,6 +4668,7 @@ const handleUploadHeroBackground = async (file: File) => {
                             src={cert.image || "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=150"}
                             onSave={(newImg) => handleUpdateCertification(cert.id, { image: newImg })}
                             isAdmin={isAdminLoggedIn}
+                        uploadImage={uploadMedia}
                             className="max-h-full max-w-full object-contain"
                             alt={cert.title}
                           />
@@ -5824,7 +5850,7 @@ const handleUploadHeroBackground = async (file: File) => {
                               const file = e.dataTransfer.files?.[0];
                               if (file) {
                                 try {
-  const url = await uploadFileToBlob(file, "logos", 800);
+  const url = await uploadMedia(file, "logos", 800);
   setLogoUrlInput(url);
   handleUpdateTextSection("logo", { logoUrl: url });
 } catch (error: any) {
@@ -5851,7 +5877,7 @@ const handleUploadHeroBackground = async (file: File) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
                                   try {
-  const url = await uploadFileToBlob(file, "logos", 800);
+  const url = await uploadMedia(file, "logos", 800);
   setLogoUrlInput(url);
   handleUpdateTextSection("logo", { logoUrl: url });
 } catch (error: any) {

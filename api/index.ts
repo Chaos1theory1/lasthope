@@ -6,111 +6,51 @@ import fs from "fs";
 import crypto from "crypto";
 import { GoogleGenAI } from "@google/genai";
 import nodemailer from "nodemailer";
-import { supabase } from "@/lib/supabase";
-import { uploadMedia } from "@/lib/uploadMedia";
+import { createClient } from "@supabase/supabase-js";
 
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "biotechagro.digital@gmail.com").trim().toLowerCase();
+const SUPABASE_MEDIA_BUCKET = process.env.SUPABASE_MEDIA_BUCKET || "media";
+const SUPABASE_STATE_TABLE = process.env.SUPABASE_STATE_TABLE || "site_state";
+const PUBLIC_STATE_ID = "public";
+const ADMIN_USERS_STATE_ID = "admin_users";
 
-export async function createProduct(formData: {
-  title_fr: string;
-  title_ar?: string;
-  title_en?: string;
-  description_fr?: string;
-  description_ar?: string;
-  description_en?: string;
-  imageFile?: File;
-}) {
-  let image_path = null;
-  let image_url = null;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || "";
+const SUPABASE_SERVER_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_SERVER_KEY);
 
-  if (formData.imageFile) {
-    const uploaded = await uploadMedia(formData.imageFile, "products");
-    image_path = uploaded.path;
-    image_url = uploaded.url;
+const supabaseServer = createClient(
+  SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_SERVER_KEY || "placeholder-key",
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
+
+function getSupabaseClientForRequest(req: express.Request) {
+  if (SUPABASE_SERVICE_ROLE_KEY) {
+    return supabaseServer;
   }
 
-  const { data, error } = await supabase
-    .from("site_items")
-    .insert({
-      type: "product",
-      title_fr: formData.title_fr,
-      title_ar: formData.title_ar,
-      title_en: formData.title_en,
-      description_fr: formData.description_fr,
-      description_ar: formData.description_ar,
-      description_en: formData.description_en,
-      image_path,
-      image_url,
-      is_active: true,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-}
-
-export async function getProducts() {
-  const { data, error } = await supabase
-    .from("site_items")
-    .select("*")
-    .eq("type", "product")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-}
-
-
-export async function getServices() {
-  const { data, error } = await supabase
-    .from("site_items")
-    .select("*")
-    .eq("type", "service")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-}
-
-
-export async function uploadMedia(file: File, folder: "products" | "services" | "logos") {
-  const safeName = file.name
-    .toLowerCase()
-    .replace(/[^a-z0-9.]/g, "-");
-
-  const filePath = `${folder}/${crypto.randomUUID()}-${safeName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("media")
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
-
-  if (uploadError) {
-    throw uploadError;
-  }
-
-  const { data } = supabase.storage
-    .from("media")
-    .getPublicUrl(filePath);
-
-  return {
-    path: filePath,
-    url: data.publicUrl,
-  };
+  return createClient(
+    SUPABASE_URL || "https://placeholder.supabase.co",
+    SUPABASE_ANON_KEY || "placeholder-key",
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      },
+      global: {
+        headers: {
+          Authorization: String(req.headers.authorization || "")
+        }
+      }
+    }
+  );
 }
 
 const app = express();
@@ -119,15 +59,13 @@ app.use(express.json({ limit: "10mb" }));
 
 // Resolve paths
 // Local file is still used as the seed/fallback.
-// On Vercel, public website data is persisted in Vercel Blob.
+// Supabase is now the permanent database for public content, messages, and admin users.
 const SOURCE_DB_PATH = path.join(process.cwd(), "src", "db", "db.json");
 const WRITABLE_DB_PATH = process.env.VERCEL ? "/tmp/biotechagro-db.json" : SOURCE_DB_PATH;
-const PUBLIC_DATA_BLOB_PATH = "data/public-content.json";
-const ADMIN_USERS_BLOB_PATH = process.env.ADMIN_USERS_BLOB_PATH || "data/admin-users.json";
 const SESSION_SECRET = process.env.SESSION_SECRET || "mycotunisia_secret_session_2026";
 
-// Do not cache Blob-backed JSON in memory. Vercel serverless instances can keep stale memory
-// and accidentally overwrite newer Blob data during ping/login/update requests.
+// Do not cache Supabase-backed JSON in memory. Vercel serverless instances can keep stale memory
+// and accidentally overwrite newer database rows during ping/login/update requests.
 
 function ensureWritableDB() {
   try {
@@ -161,7 +99,9 @@ function extractPublicWebsiteData(db: any) {
   return {
     siteContent: db?.siteContent || {},
     products: Array.isArray(db?.products) ? db.products : [],
-    services: Array.isArray(db?.services) ? db.services : []
+    services: Array.isArray(db?.services) ? db.services : [],
+    messages: Array.isArray(db?.messages) ? db.messages : [],
+    adminSettings: db?.adminSettings || {}
   };
 }
 
@@ -170,63 +110,78 @@ function mergePublicWebsiteData(baseDb: any, publicData: any) {
     ...baseDb,
     siteContent: publicData?.siteContent || baseDb?.siteContent || {},
     products: Array.isArray(publicData?.products) ? publicData.products : baseDb?.products || [],
-    services: Array.isArray(publicData?.services) ? publicData.services : baseDb?.services || []
+    services: Array.isArray(publicData?.services) ? publicData.services : baseDb?.services || [],
+    messages: Array.isArray(publicData?.messages) ? publicData.messages : baseDb?.messages || [],
+    adminSettings: publicData?.adminSettings || baseDb?.adminSettings || {}
   };
 }
 
-async function readPublicWebsiteDataFromBlob() {
-  try {
-    const result = await get(PUBLIC_DATA_BLOB_PATH, { access: "public" });
+async function readStateRecord<T = any>(id: string): Promise<T | null> {
+  if (!isSupabaseConfigured) {
+    return null;
+  }
 
-    if (!result || result.statusCode !== 200 || !result.stream) {
+  try {
+    const { data, error } = await supabaseServer
+      .from(SUPABASE_STATE_TABLE)
+      .select("data")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      if (String(error.message || "").toLowerCase().includes("does not exist")) {
+        console.warn(`Supabase table ${SUPABASE_STATE_TABLE} does not exist yet. Using local fallback.`);
+        return null;
+      }
+      console.warn(`Could not read Supabase state record ${id}:`, error.message || error);
       return null;
     }
 
-    const text = await new Response(result.stream).text();
-    const parsed = JSON.parse(text);
-
-    return parsed;
+    return (data?.data as T) || null;
   } catch (error: any) {
-    // This is normal the first time, before data/public-content.json exists.
-    console.warn("Public website data not found in Blob yet. Using local seed DB.", error?.message || error);
+    console.warn(`Could not read Supabase state record ${id}:`, error?.message || error);
     return null;
   }
 }
 
-async function writePublicWebsiteDataToBlob(db: any) {
-  const publicData = extractPublicWebsiteData(db);
+async function writeStateRecord(id: string, data: any) {
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, or SUPABASE_ANON_KEY.");
+  }
 
-  await put(PUBLIC_DATA_BLOB_PATH, JSON.stringify(publicData, null, 2), {
-    access: "public",
-    contentType: "application/json",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    cacheControlMaxAge: 0
-  });
+  const { error } = await supabaseServer
+    .from(SUPABASE_STATE_TABLE)
+    .upsert(
+      {
+        id,
+        data,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "id" }
+    );
 
-  return publicData;
+  if (error) {
+    throw error;
+  }
 }
 
-// Helpers to read and write database
 async function getDBState() {
   const localDb = readLocalDBState();
+  const supabasePublicData = await readStateRecord<any>(PUBLIC_STATE_ID);
+
+  if (supabasePublicData) {
+    return mergePublicWebsiteData(localDb || {}, supabasePublicData);
+  }
 
   if (!localDb) {
     return null;
   }
 
-  const blobPublicData = await readPublicWebsiteDataFromBlob();
-
-  if (blobPublicData) {
-    return mergePublicWebsiteData(localDb, blobPublicData);
-  }
-
-  // First deployment after enabling Blob persistence:
-  // seed Blob with current public website data.
+  // First deployment after enabling Supabase persistence: seed Supabase with current local public website data.
   try {
-    await writePublicWebsiteDataToBlob(localDb);
-  } catch (error) {
-    console.error("Failed to seed public website data into Blob:", error);
+    await writeStateRecord(PUBLIC_STATE_ID, extractPublicWebsiteData(localDb));
+  } catch (error: any) {
+    console.error("Failed to seed public website data into Supabase:", error?.message || error);
   }
 
   return localDb;
@@ -235,7 +190,7 @@ async function getDBState() {
 async function saveDBState(data: any) {
   let localSaved = false;
 
-  // Keep the old temporary/local write so admin reset/session behavior does not break.
+  // Keep the old temporary/local write so local development does not break.
   try {
     ensureWritableDB();
     fs.mkdirSync(path.dirname(WRITABLE_DB_PATH), { recursive: true });
@@ -245,12 +200,12 @@ async function saveDBState(data: any) {
     console.error("Failed to write to local JSON DB:", error);
   }
 
-  // Persist the public website data permanently in Vercel Blob.
+  // Persist the public website data permanently in Supabase.
   try {
-    await writePublicWebsiteDataToBlob(data);
+    await writeStateRecord(PUBLIC_STATE_ID, extractPublicWebsiteData(data));
     return true;
-  } catch (error) {
-    console.error("Failed to write public website data to Vercel Blob:", error);
+  } catch (error: any) {
+    console.error("Failed to write public website data to Supabase:", error?.message || error);
     return localSaved;
   }
 }
@@ -305,93 +260,31 @@ function publicAdminUser(user: AdminUser) {
   };
 }
 
-type AdminUsersReadResult = {
-  users: AdminUser[] | null;
-  notFound: boolean;
-  error?: any;
-};
-
-function isBlobNotFoundError(error: any) {
-  const message = String(error?.message || error || "").toLowerCase();
-
-  return (
-    message.includes("404") ||
-    message.includes("not found") ||
-    message.includes("no such") ||
-    message.includes("does not exist") ||
-    message.includes("could not be found")
-  );
+async function readAdminUsersFromSupabase(): Promise<AdminUser[] | null> {
+  const users = await readStateRecord<AdminUser[]>(ADMIN_USERS_STATE_ID);
+  return Array.isArray(users) ? users : null;
 }
 
-async function readAdminUsersFromBlob(): Promise<AdminUsersReadResult> {
-  try {
-    const result = await get(ADMIN_USERS_BLOB_PATH, { access: "public" });
-
-    if (!result || result.statusCode === 404 || !result.stream) {
-      return { users: null, notFound: true };
-    }
-
-    if (result.statusCode !== 200) {
-      return {
-        users: null,
-        notFound: result.statusCode === 404,
-        error: new Error(`Unexpected Blob status while reading admin users: ${result.statusCode}`)
-      };
-    }
-
-    const text = await new Response(result.stream).text();
-    const parsed = JSON.parse(text);
-
-    if (!Array.isArray(parsed)) {
-      return {
-        users: null,
-        notFound: false,
-        error: new Error("Admin users JSON exists but is not an array.")
-      };
-    }
-
-    return { users: parsed, notFound: false };
-  } catch (error: any) {
-    if (isBlobNotFoundError(error)) {
-      console.warn("Admin users Blob not found yet. It will be seeded once.", error?.message || error);
-      return { users: null, notFound: true, error };
-    }
-
-    console.error("Failed to read persistent admin users JSON from Vercel Blob:", error?.message || error);
-    return { users: null, notFound: false, error };
-  }
-}
-
-async function writeAdminUsersToBlob(
+async function writeAdminUsersToSupabase(
   users: AdminUser[],
   options: { allowOverwrite?: boolean } = {}
 ) {
-  await put(ADMIN_USERS_BLOB_PATH, JSON.stringify(users, null, 2), {
-    access: "public",
-    contentType: "application/json",
-    addRandomSuffix: false,
-    allowOverwrite: options.allowOverwrite ?? true,
-    cacheControlMaxAge: 0
-  });
+  if (options.allowOverwrite === false) {
+    const existing = await readAdminUsersFromSupabase();
+    if (existing && existing.length > 0) {
+      return existing;
+    }
+  }
 
+  await writeStateRecord(ADMIN_USERS_STATE_ID, users);
   return users;
 }
 
 async function getAdminUsers(seedDb?: any): Promise<AdminUser[]> {
-  const readResult = await readAdminUsersFromBlob();
+  const supabaseUsers = await readAdminUsersFromSupabase();
 
-  if (readResult.users && readResult.users.length > 0) {
-    return readResult.users;
-  }
-
-  if (readResult.users && readResult.users.length === 0) {
-    return readResult.users;
-  }
-
-  if (readResult.error && !readResult.notFound) {
-    throw new Error(
-      "Could not read persistent admin users JSON from Vercel Blob. Existing users were not overwritten. Check BLOB_READ_WRITE_TOKEN and Vercel Blob access."
-    );
+  if (supabaseUsers) {
+    return supabaseUsers;
   }
 
   const db = seedDb || readLocalDBState() || {};
@@ -410,7 +303,7 @@ async function getAdminUsers(seedDb?: any): Promise<AdminUser[]> {
     {
       username: "admin",
       displayName: "Main Admin",
-      email: adminSettings.adminEmail || process.env.DEFAULT_ADMIN_EMAIL || "biotechagro.digital@gmail.com",
+      email: adminSettings.adminEmail || process.env.DEFAULT_ADMIN_EMAIL || ADMIN_EMAIL,
       role: "owner",
       passwordSalt,
       passwordHash,
@@ -422,11 +315,9 @@ async function getAdminUsers(seedDb?: any): Promise<AdminUser[]> {
   ];
 
   try {
-    await writeAdminUsersToBlob(seedUsers, { allowOverwrite: false });
+    await writeAdminUsersToSupabase(seedUsers, { allowOverwrite: false });
   } catch (error: any) {
-    throw new Error(
-      "Admin users JSON could not be seeded without overwrite. Existing users were preserved. Please check Vercel Blob data/admin-users.json and redeploy."
-    );
+    console.error("Admin users could not be seeded in Supabase:", error?.message || error);
   }
 
   return seedUsers;
@@ -801,6 +692,42 @@ function getSessionUsernameFromToken(token?: string): string | null {
 }
 
 // Middleware to secure administrator endpoints
+async function getSupabaseAdminFromToken(token: string): Promise<AdminUser | null> {
+  if (!isSupabaseConfigured) {
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabaseServer.auth.getUser(token);
+    const user = data?.user;
+
+    if (error || !user) {
+      return null;
+    }
+
+    if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+      return null;
+    }
+
+    const generated = makePasswordHash("supabase-authenticated-admin");
+
+    return {
+      username: "admin",
+      displayName: "BiotechAgro Admin",
+      email: user.email || ADMIN_EMAIL,
+      role: "owner",
+      passwordSalt: generated.passwordSalt,
+      passwordHash: generated.passwordHash,
+      isActive: true,
+      createdAt: user.created_at || new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      resetCode: null
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 async function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   const authHeader = req.headers.authorization;
 
@@ -809,6 +736,16 @@ async function requireAdmin(req: express.Request, res: express.Response, next: e
   }
 
   const token = authHeader.split(" ")[1];
+
+  // Preferred mode: Supabase magic-link session token.
+  const supabaseAdmin = await getSupabaseAdminFromToken(token);
+  if (supabaseAdmin) {
+    (req as any).adminUser = supabaseAdmin;
+    (req as any).authMode = "supabase";
+    return next();
+  }
+
+  // Backward compatibility: legacy username/password token.
   const username = getSessionUsernameFromToken(token);
 
   if (!username) {
@@ -824,6 +761,7 @@ async function requireAdmin(req: express.Request, res: express.Response, next: e
     }
 
     (req as any).adminUser = user;
+    (req as any).authMode = "legacy";
     next();
   } catch (error: any) {
     console.error("Admin authentication failed:", error);
@@ -895,29 +833,38 @@ app.post("/api/media/upload", requireAdmin, async (req, res) => {
       .replace(/^-|-$/g, "");
 
     const pathname = `${safeFolder}/${Date.now()}-${crypto.randomUUID()}-${safeFilename || "image"}.${extension}`;
+    const storageClient = getSupabaseClientForRequest(req);
 
-    const blob = await put(pathname, buffer, {
-      access: "public",
-      contentType,
-      addRandomSuffix: false
-    });
+    const { error: uploadError } = await storageClient.storage
+      .from(SUPABASE_MEDIA_BUCKET)
+      .upload(pathname, buffer, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType
+      });
 
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = storageClient.storage
+      .from(SUPABASE_MEDIA_BUCKET)
+      .getPublicUrl(pathname);
 
     return res.json({
       success: true,
-      url: blob.url,
-      pathname: blob.pathname,
-      contentType: blob.contentType
+      url: data.publicUrl,
+      pathname,
+      contentType
     });
   } catch (error: any) {
-    console.error("Blob upload error:", error);
+    console.error("Supabase media upload error:", error);
 
     return res.status(500).json({
       error: error.message || "Failed to upload image."
     });
   }
 });
-
 // ==========================================
 // PUBLIC ENDPOINTS
 // ==========================================
@@ -1035,7 +982,7 @@ app.post("/api/auth/login", async (req, res) => {
       resetCode: null
     };
 
-    await writeAdminUsersToBlob(users);
+    await writeAdminUsersToSupabase(users);
 
     db.adminSettings = {
       ...(db.adminSettings || {}),
@@ -1089,7 +1036,7 @@ app.post("/api/auth/request-reset", async (req, res) => {
       }
     };
 
-    await writeAdminUsersToBlob(users);
+    await writeAdminUsersToSupabase(users);
 
     const destinationEmail = users[userIndex].email;
     const mailResult = await sendResetCodeEmail(destinationEmail, code);
@@ -1162,7 +1109,7 @@ app.post("/api/auth/reset-password", async (req, res) => {
       resetCode: null
     };
 
-    await writeAdminUsersToBlob(users);
+    await writeAdminUsersToSupabase(users);
 
     if (users[userIndex].username === "admin") {
       const db = await getDBState();
@@ -1220,7 +1167,7 @@ app.post("/api/auth/ping", (req, res) => {
     return res.status(403).json({ error: "Invalid or expired admin session token." });
   }
 
-  // Presence tracking was intentionally removed to avoid frequent Blob reads/writes.
+  // Presence tracking was intentionally removed to avoid frequent Supabase reads/writes.
   // This endpoint now only confirms that the local session token is still structurally valid.
   return res.json({
     success: true,
@@ -1240,8 +1187,9 @@ app.post("/api/admin/sync-public-data", requireAdmin, async (req, res) => {
 
   return res.json({
     success: true,
-    message: "Public website data synced to Vercel Blob.",
-    blobPath: PUBLIC_DATA_BLOB_PATH,
+    message: "Public website data synced to Supabase.",
+    supabaseTable: SUPABASE_STATE_TABLE,
+    supabaseRecord: PUBLIC_STATE_ID,
     products: Array.isArray(db.products) ? db.products.length : 0,
     services: Array.isArray(db.services) ? db.services.length : 0,
     hasSiteContent: Boolean(db.siteContent)
@@ -1294,7 +1242,7 @@ app.put("/api/auth/update-email", requireAdmin, async (req, res) => {
         : user
     );
 
-    await writeAdminUsersToBlob(updatedUsers);
+    await writeAdminUsersToSupabase(updatedUsers);
 
     if (currentUser.username === "admin") {
       const db = await getDBState();
@@ -1343,7 +1291,7 @@ app.put("/api/auth/update-password", requireAdmin, async (req, res) => {
         : user
     );
 
-    await writeAdminUsersToBlob(updatedUsers);
+    await writeAdminUsersToSupabase(updatedUsers);
 
     if (currentUser.username === "admin") {
       const db = await getDBState();
@@ -1432,7 +1380,7 @@ app.post("/api/admin/users", requireAdmin, requireOwner, async (req, res) => {
 
     users.push(newUser);
 
-    await writeAdminUsersToBlob(users);
+    await writeAdminUsersToSupabase(users);
 
     const currentUser = (req as any).adminUser as AdminUser | undefined;
 
@@ -1528,7 +1476,7 @@ app.put("/api/admin/users/:username", requireAdmin, requireOwner, async (req, re
       isActive: typeof isActive === "boolean" ? isActive : users[userIndex].isActive
     };
 
-    await writeAdminUsersToBlob(users);
+    await writeAdminUsersToSupabase(users);
 
 
     return res.json({
@@ -1570,7 +1518,7 @@ app.put("/api/admin/users/:username/password", requireAdmin, requireOwner, async
       resetCode: null
     };
 
-    await writeAdminUsersToBlob(users);
+    await writeAdminUsersToSupabase(users);
 
 
     return res.json({
@@ -1609,7 +1557,7 @@ app.delete("/api/admin/users/:username", requireAdmin, requireOwner, async (req,
       return res.status(400).json({ error: "At least one active owner account is required." });
     }
 
-    await writeAdminUsersToBlob(remainingUsers);
+    await writeAdminUsersToSupabase(remainingUsers);
 
 
     return res.json({
