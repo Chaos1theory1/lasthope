@@ -814,9 +814,40 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const [loginError, setLoginError] = useState<string>("");
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
+  type AdminRole = "owner" | "admin" | "editor";
+
+  type AdminPanelUser = {
+    username: string;
+    displayName: string;
+    email: string;
+    role: AdminRole;
+    isActive: boolean;
+    createdAt: string;
+    lastLogin?: string;
+    lastSeenAt?: string;
+    isOnline?: boolean;
+  };
+
+  const [currentAdminUser, setCurrentAdminUser] = useState<AdminPanelUser | null>(null);
+  const [adminUsers, setAdminUsers] = useState<AdminPanelUser[]>([]);
+  const [isLoadingAdminUsers, setIsLoadingAdminUsers] = useState(false);
+  const [adminUsersError, setAdminUsersError] = useState("");
+  const [adminActionMessage, setAdminActionMessage] = useState("");
+  const [newAdminUserForm, setNewAdminUserForm] = useState({
+    username: "",
+    displayName: "",
+    email: "",
+    password: "",
+    role: "editor" as AdminRole
+  });
+  const [resettingAdminUsername, setResettingAdminUsername] = useState("");
+  const [resettingAdminPassword, setResettingAdminPassword] = useState("");
+  const [isResettingAdminPassword, setIsResettingAdminPassword] = useState(false);
+
+
   // Forgot password/Reset states
   const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
-  const [resetEmail, setResetEmail] = useState<string>("biotechagro.digital@gmail.com");
+  const [resetEmail, setResetEmail] = useState<string>("");
   const [resetCode, setResetCode] = useState<string>("");
   const [resetNewPassword, setResetNewPassword] = useState<string>("");
   const [isRequestingResetCode, setIsRequestingResetCode] = useState<boolean>(false);
@@ -937,21 +968,45 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   // ==========================================
   // EFFECT: Verify Token & Get Inbox Messages
   // ==========================================
+  const getLegacyOwnerFallback = (username = "admin"): AdminPanelUser => ({
+    username,
+    displayName: username === "admin" ? "Main Admin" : username,
+    email: adminSecEmail || "biotechagro.digital@gmail.com",
+    role: username === "admin" ? "owner" : "admin",
+    isActive: true,
+    createdAt: "",
+    lastLogin: secLastLogin || "",
+    lastSeenAt: "",
+    isOnline: true
+  });
+
   const verifyTokenAndLoadInbox = async (token: string) => {
     if (!token) return;
+
     try {
       const response = await fetch("/api/auth/verify", {
         headers: { Authorization: `Bearer ${token}` }
       });
+
       if (response.ok) {
+        const data = await response.json();
+        const verifiedUser: AdminPanelUser = data.user || getLegacyOwnerFallback(data.username || "admin");
+
         setIsAdminLoggedIn(true);
+        setCurrentAdminUser(verifiedUser);
+
         loadAdminInbox(token);
         loadAdminSettings(token);
+
+        if (verifiedUser.role === "owner") {
+          loadAdminUsers(token);
+        }
       } else {
-        // stale token
         localStorage.removeItem("myco_admin_token");
         setAuthToken("");
         setIsAdminLoggedIn(false);
+        setCurrentAdminUser(null);
+        setAdminUsers([]);
       }
     } catch (err) {
       console.error("Token verification failed:", err);
@@ -989,11 +1044,275 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
     }
   };
 
+
+  const loadAdminUsers = async (token = authToken) => {
+    if (!token) return;
+
+    try {
+      setIsLoadingAdminUsers(true);
+      setAdminUsersError("");
+
+      const response = await fetch("/api/admin/users", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setAdminUsersError(data.error || `Failed to load admin users. Server status: ${response.status}`);
+        return;
+      }
+
+      setAdminUsers(data.users || []);
+    } catch (error) {
+      setAdminUsersError("Network error while loading admin users.");
+    } finally {
+      setIsLoadingAdminUsers(false);
+    }
+  };
+
+  const handleCreateAdminUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      setAdminUsersError("");
+      setAdminActionMessage("");
+
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify(newAdminUserForm)
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setAdminUsersError(data.error || `Failed to create admin user. Server status: ${response.status}`);
+        return;
+      }
+
+      setNewAdminUserForm({
+        username: "",
+        displayName: "",
+        email: "",
+        password: "",
+        role: "editor"
+      });
+
+      setAdminUsers(data.users || []);
+      setAdminActionMessage("Admin user created and saved to Vercel Blob JSON.");
+      loadAdminUsers();
+    } catch (error) {
+      setAdminUsersError("Network error while creating admin user.");
+    }
+  };
+
+  const handleToggleAdminUserStatus = async (user: AdminPanelUser) => {
+    if (user.username === currentAdminUser?.username) {
+      alert("You cannot deactivate your own account.");
+      return;
+    }
+
+    try {
+      setAdminUsersError("");
+      setAdminActionMessage("");
+
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.username)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          isActive: !user.isActive
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setAdminUsersError(data.error || "Failed to update admin user.");
+        return;
+      }
+
+      setAdminUsers(data.users || []);
+      setAdminActionMessage(user.isActive ? "User deactivated." : "User activated.");
+      loadAdminUsers();
+    } catch (error) {
+      setAdminUsersError("Network error while updating admin user.");
+    }
+  };
+
+  const handleModifyAdminUser = async (user: AdminPanelUser) => {
+    const displayName = window.prompt("Display name", user.displayName || user.username);
+    if (displayName === null) return;
+
+    const email = window.prompt("Email", user.email);
+    if (email === null) return;
+
+    const role = window.prompt("Role: owner, admin, or editor", user.role);
+    if (role === null) return;
+
+    if (!["owner", "admin", "editor"].includes(role)) {
+      alert("Role must be owner, admin, or editor.");
+      return;
+    }
+
+    try {
+      setAdminUsersError("");
+      setAdminActionMessage("");
+
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.username)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          displayName,
+          email,
+          role
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setAdminUsersError(data.error || "Failed to modify admin user.");
+        return;
+      }
+
+      setAdminUsers(data.users || []);
+      setAdminActionMessage("Admin user updated.");
+      loadAdminUsers();
+    } catch (error) {
+      setAdminUsersError("Network error while modifying admin user.");
+    }
+  };
+
+  const handleResetManagedUserPassword = async (username: string) => {
+    if (!resettingAdminPassword.trim()) {
+      alert("Enter a temporary password first.");
+      return;
+    }
+
+    try {
+      setIsResettingAdminPassword(true);
+      setAdminUsersError("");
+      setAdminActionMessage("");
+
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(username)}/password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          newPassword: resettingAdminPassword.trim()
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setAdminUsersError(data.error || "Failed to reset user password.");
+        return;
+      }
+
+      setResettingAdminUsername("");
+      setResettingAdminPassword("");
+      setAdminActionMessage(`Password reset for @${username}.`);
+      loadAdminUsers();
+    } catch (error) {
+      setAdminUsersError("Network error while resetting user password.");
+    } finally {
+      setIsResettingAdminPassword(false);
+    }
+  };
+
+  const handleDeleteAdminUser = async (user: AdminPanelUser) => {
+    if (user.username === currentAdminUser?.username) {
+      alert("You cannot delete your own account.");
+      return;
+    }
+
+    if (!confirm(`Delete admin user @${user.username}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setAdminUsersError("");
+      setAdminActionMessage("");
+
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.username)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setAdminUsersError(data.error || "Failed to delete admin user.");
+        return;
+      }
+
+      setAdminUsers(data.users || []);
+      setAdminActionMessage("Admin user deleted.");
+      loadAdminUsers();
+    } catch (error) {
+      setAdminUsersError("Network error while deleting admin user.");
+    }
+  };
+
+
   useEffect(() => {
     if (authToken) {
       verifyTokenAndLoadInbox(authToken);
     }
   }, [authToken]);
+
+  useEffect(() => {
+    if (!isAdminLoggedIn || !authToken) return;
+
+    const ping = async () => {
+      try {
+        const response = await fetch("/api/auth/ping", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.user) {
+            setCurrentAdminUser(data.user);
+          }
+
+          if (currentAdminUser?.role === "owner") {
+            loadAdminUsers();
+          }
+        }
+      } catch (error) {
+        console.warn("Admin heartbeat failed:", error);
+      }
+    };
+
+    ping();
+
+    const timer = window.setInterval(ping, 60 * 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isAdminLoggedIn, authToken, currentAdminUser?.role]);
+
 
   // ==========================================
   // USER: Submit contact inquiry
@@ -1050,13 +1369,20 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       });
       const data = await response.json();
       if (response.ok && data.token) {
+        const loggedUser: AdminPanelUser = data.user || getLegacyOwnerFallback(data.username || adminUsername || "admin");
+
         localStorage.setItem("myco_admin_token", data.token);
         setAuthToken(data.token);
         setIsAdminLoggedIn(true);
+        setCurrentAdminUser(loggedUser);
         setAdminPassword("");
         setAdminUsername("");
         loadAdminInbox(data.token);
         loadAdminSettings(data.token);
+
+        if (loggedUser.role === "owner") {
+          loadAdminUsers(data.token);
+        }
       } else {
         setLoginError(data.error || "Invalid username or password.");
       }
@@ -1071,6 +1397,8 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
     localStorage.removeItem("myco_admin_token");
     setAuthToken("");
     setIsAdminLoggedIn(false);
+    setCurrentAdminUser(null);
+    setAdminUsers([]);
     setAdminMessages([]);
     if (activePage === "admin") {
       setActivePage("home");
@@ -1946,6 +2274,277 @@ const handleUploadHeroBackground = async (file: File) => {
       window.open(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`${window.location.origin}/?qr=${productId}`)}`, '_blank');
     }
   };
+
+
+  const renderAdminUsersPanel = () => {
+    if (!isAdminLoggedIn || currentAdminUser?.role !== "owner") {
+      return null;
+    }
+
+    return (
+      <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-xs space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-stone-100 pb-4">
+          <div>
+            <h3 className="font-display font-bold text-lg text-stone-900">Admin Users</h3>
+            <p className="text-xs text-stone-400 mt-1">
+              Owner-only staff management. Create users, assign roles, reset passwords, and monitor connected users.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => loadAdminUsers()}
+            className="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-bold hover:bg-stone-800"
+          >
+            Refresh Users
+          </button>
+        </div>
+
+        {adminUsersError && (
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+            {adminUsersError}
+          </div>
+        )}
+
+        {adminActionMessage && (
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+            {adminActionMessage}
+          </div>
+        )}
+
+        <form onSubmit={handleCreateAdminUser} className="grid grid-cols-1 md:grid-cols-6 gap-3 bg-stone-50 border border-stone-200 rounded-2xl p-4">
+          <input
+            type="text"
+            required
+            value={newAdminUserForm.username}
+            onChange={(e) => setNewAdminUserForm({ ...newAdminUserForm, username: e.target.value })}
+            placeholder="Username"
+            className="rounded-xl border border-stone-200 px-3 py-2 text-xs"
+          />
+
+          <input
+            type="text"
+            value={newAdminUserForm.displayName}
+            onChange={(e) => setNewAdminUserForm({ ...newAdminUserForm, displayName: e.target.value })}
+            placeholder="Display name"
+            className="rounded-xl border border-stone-200 px-3 py-2 text-xs"
+          />
+
+          <input
+            type="email"
+            required
+            value={newAdminUserForm.email}
+            onChange={(e) => setNewAdminUserForm({ ...newAdminUserForm, email: e.target.value })}
+            placeholder="User email"
+            className="rounded-xl border border-stone-200 px-3 py-2 text-xs"
+          />
+
+          <input
+            type="password"
+            required
+            value={newAdminUserForm.password}
+            onChange={(e) => setNewAdminUserForm({ ...newAdminUserForm, password: e.target.value })}
+            placeholder="Temporary password"
+            className="rounded-xl border border-stone-200 px-3 py-2 text-xs"
+          />
+
+          <select
+            value={newAdminUserForm.role}
+            onChange={(e) =>
+              setNewAdminUserForm({
+                ...newAdminUserForm,
+                role: e.target.value as AdminRole
+              })
+            }
+            className="rounded-xl border border-stone-200 px-3 py-2 text-xs"
+          >
+            <option value="editor">Editor</option>
+            <option value="admin">Admin</option>
+            <option value="owner">Owner</option>
+          </select>
+
+          <button
+            type="submit"
+            className="rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold px-4 py-2 flex items-center justify-center gap-2"
+          >
+            <Plus size={14} />
+            Add User
+          </button>
+        </form>
+
+        <div className="overflow-x-auto border border-stone-200 rounded-2xl">
+          <table className="w-full text-xs">
+            <thead className="bg-stone-50 text-stone-500">
+              <tr>
+                <th className="text-left px-4 py-3 font-bold">Status</th>
+                <th className="text-left px-4 py-3 font-bold">User</th>
+                <th className="text-left px-4 py-3 font-bold">Role</th>
+                <th className="text-left px-4 py-3 font-bold">Email</th>
+                <th className="text-left px-4 py-3 font-bold">Last Login</th>
+                <th className="text-left px-4 py-3 font-bold">Last Online</th>
+                <th className="text-right px-4 py-3 font-bold">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {isLoadingAdminUsers ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-stone-400">
+                    Loading admin users...
+                  </td>
+                </tr>
+              ) : adminUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-stone-400">
+                    No admin users found.
+                  </td>
+                </tr>
+              ) : (
+                adminUsers.map((user) => (
+                  <React.Fragment key={user.username}>
+                    <tr className="border-t border-stone-100">
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-bold ${
+                            user.isOnline
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-stone-100 text-stone-500"
+                          }`}
+                        >
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              user.isOnline ? "bg-emerald-500" : "bg-stone-400"
+                            }`}
+                          />
+                          {user.isOnline ? "Connected" : "Offline"}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-stone-900">{user.displayName || user.username}</div>
+                        <div className="text-[10px] text-stone-400">@{user.username}</div>
+                        {!user.isActive && (
+                          <div className="text-[10px] text-rose-600 font-bold mt-1">Inactive</div>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <span className="rounded-lg bg-stone-100 px-2 py-1 font-bold text-stone-600 uppercase">
+                          {user.role}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-stone-600">{user.email}</td>
+
+                      <td className="px-4 py-3 text-stone-500">
+                        {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : "Never"}
+                      </td>
+
+                      <td className="px-4 py-3 text-stone-500">
+                        {user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleString() : "Never"}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleModifyAdminUser(user)}
+                            className="rounded-xl px-3 py-2 text-[11px] font-bold bg-stone-100 text-stone-700 hover:bg-stone-200"
+                          >
+                            Modify
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setResettingAdminUsername(
+                                resettingAdminUsername === user.username ? "" : user.username
+                              );
+                              setResettingAdminPassword("");
+                            }}
+                            className="rounded-xl px-3 py-2 text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100"
+                          >
+                            Reset Password
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={user.username === currentAdminUser?.username}
+                            onClick={() => handleToggleAdminUserStatus(user)}
+                            className={`rounded-xl px-3 py-2 text-[11px] font-bold ${
+                              user.isActive
+                                ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            } disabled:opacity-40 disabled:cursor-not-allowed`}
+                          >
+                            {user.isActive ? "Deactivate" : "Activate"}
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={user.username === currentAdminUser?.username}
+                            onClick={() => handleDeleteAdminUser(user)}
+                            className="rounded-xl px-3 py-2 text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {resettingAdminUsername === user.username && (
+                      <tr className="bg-amber-50/50 border-t border-amber-100">
+                        <td colSpan={7} className="px-4 py-4">
+                          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                            <div className="text-xs text-amber-800 font-bold min-w-fit">
+                              Set new temporary password for @{user.username}
+                            </div>
+
+                            <input
+                              type="password"
+                              value={resettingAdminPassword}
+                              onChange={(e) => setResettingAdminPassword(e.target.value)}
+                              placeholder="New temporary password"
+                              className="flex-1 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs"
+                            />
+
+                            <button
+                              type="button"
+                              disabled={isResettingAdminPassword}
+                              onClick={() => handleResetManagedUserPassword(user.username)}
+                              className="rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold px-4 py-2 disabled:opacity-60"
+                            >
+                              {isResettingAdminPassword ? "Saving..." : "Save Password"}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setResettingAdminUsername("");
+                                setResettingAdminPassword("");
+                              }}
+                              className="rounded-xl bg-white border border-stone-200 text-stone-600 text-xs font-bold px-4 py-2"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-[10px] text-stone-400">
+          Online status is based on the last heartbeat. A user is shown as connected if their last online timestamp is less than 2 minutes old.
+        </p>
+      </section>
+    );
+  };
+
 
   return (
     <div className="min-h-screen bg-[#fcfcf9] flex flex-col selection:bg-emerald-100 selection:text-emerald-900 print:bg-white print:p-0">
@@ -4810,7 +5409,7 @@ const handleUploadHeroBackground = async (file: File) => {
                           type="button"
                           onClick={() => {
                             setShowForgotPassword(true);
-                            setResetEmail("biotechagro.digital@gmail.com");
+                            setResetEmail("");
                           }}
                           className="w-full text-center text-xs text-emerald-800 hover:text-emerald-900 hover:underline font-medium transition-all"
                         >
@@ -4987,6 +5586,8 @@ const handleUploadHeroBackground = async (file: File) => {
                     </span>
                   </div>
                 </div>
+
+                {renderAdminUsersPanel()}
 
                 {/* MAIN GRID: Content management area */}
                 <div className="w-full space-y-12">
