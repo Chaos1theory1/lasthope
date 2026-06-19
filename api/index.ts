@@ -20,15 +20,6 @@ const WRITABLE_DB_PATH = process.env.VERCEL ? "/tmp/biotechagro-db.json" : SOURC
 const PUBLIC_DATA_BLOB_PATH = "data/public-content.json";
 const ADMIN_USERS_BLOB_PATH = process.env.ADMIN_USERS_BLOB_PATH || "data/admin-users.json";
 const SESSION_SECRET = process.env.SESSION_SECRET || "mycotunisia_secret_session_2026";
-const ADMIN_ACTION_LOG_USER_FOLDER = process.env.ADMIN_ACTION_LOG_USER_FOLDER || "data/admin-action-logs/users";
-const MAX_ADMIN_ACTION_LOG_ITEMS = parseInt(process.env.MAX_ADMIN_ACTION_LOG_ITEMS || "500", 10);
-const ADMIN_ACTION_LOG_LATEST_ITEMS = parseInt(process.env.ADMIN_ACTION_LOG_LATEST_ITEMS || "50", 10);
-const ADMIN_ACTION_LOG_WARNING_ITEMS = parseInt(process.env.ADMIN_ACTION_LOG_WARNING_ITEMS || "400", 10);
-const ADMIN_ACTION_LOG_WARNING_BYTES = parseInt(process.env.ADMIN_ACTION_LOG_WARNING_BYTES || String(1024 * 1024), 10);
-const ADMIN_ACTION_LOG_HARD_BYTES = parseInt(process.env.ADMIN_ACTION_LOG_HARD_BYTES || String(2 * 1024 * 1024), 10);
-const ADMIN_ACTION_LOG_MAX_PARTS = parseInt(process.env.ADMIN_ACTION_LOG_MAX_PARTS || "50", 10);
-const ADMIN_ACTION_LOG_ALERTS_BLOB_PATH = process.env.ADMIN_ACTION_LOG_ALERTS_BLOB_PATH || "data/admin-action-logs/alerts.json";
-const ADMIN_ACTION_LOG_ALERT_COOLDOWN_HOURS = parseInt(process.env.ADMIN_ACTION_LOG_ALERT_COOLDOWN_HOURS || "24", 10);
 
 // Do not cache Blob-backed JSON in memory. Vercel serverless instances can keep stale memory
 // and accidentally overwrite newer Blob data during ping/login/update requests.
@@ -172,7 +163,6 @@ type AdminUser = {
   isActive: boolean;
   createdAt: string;
   lastLogin?: string;
-  lastSeenAt?: string;
   resetCode?: {
     code: string;
     expiresAt: number;
@@ -198,16 +188,6 @@ function makePasswordHash(password: string, salt = crypto.randomBytes(16).toStri
   };
 }
 
-function isUserOnline(lastSeenAt?: string) {
-  if (!lastSeenAt) return false;
-
-  const lastSeenTime = new Date(lastSeenAt).getTime();
-
-  if (Number.isNaN(lastSeenTime)) return false;
-
-  return Date.now() - lastSeenTime < 2 * 60 * 1000;
-}
-
 function publicAdminUser(user: AdminUser) {
   return {
     username: user.username,
@@ -216,9 +196,7 @@ function publicAdminUser(user: AdminUser) {
     role: user.role,
     isActive: user.isActive,
     createdAt: user.createdAt,
-    lastLogin: user.lastLogin || "",
-    lastSeenAt: user.lastSeenAt || "",
-    isOnline: isUserOnline(user.lastSeenAt)
+    lastLogin: user.lastLogin || ""
   };
 }
 
@@ -334,7 +312,6 @@ async function getAdminUsers(seedDb?: any): Promise<AdminUser[]> {
       isActive: true,
       createdAt: new Date().toISOString(),
       lastLogin: adminSettings.lastLogin || "",
-      lastSeenAt: "",
       resetCode: null
     }
   ];
@@ -350,469 +327,6 @@ async function getAdminUsers(seedDb?: any): Promise<AdminUser[]> {
   return seedUsers;
 }
 
-type AdminActionLogEntry = {
-  id: string;
-  timestamp: string;
-  actor: {
-    username: string;
-    displayName?: string;
-    email?: string;
-    role?: string;
-  };
-  action: string;
-  resourceType: string;
-  resourceId?: string;
-  resourceLabel?: string;
-  details?: any;
-};
-
-type AdminConsoleAlert = {
-  id: string;
-  timestamp: string;
-  type: string;
-  severity: "info" | "warning" | "critical";
-  isRead: boolean;
-  readAt?: string;
-  alertKey: string;
-  title: string;
-  message: string;
-  details?: any;
-  email?: {
-    attempted: boolean;
-    success: boolean;
-    realSent: boolean;
-    recipients: string[];
-    error?: string;
-  };
-};
-
-function safeLogUsername(username: string) {
-  return String(username || "unknown")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "") || "unknown";
-}
-
-function getUtcYearMonth(date = new Date()) {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
-}
-
-function getLegacyUserLogPath(username: string) {
-  return `${ADMIN_ACTION_LOG_USER_FOLDER}/${safeLogUsername(username)}.json`;
-}
-
-function getLatestUserLogPath(username: string) {
-  return `${ADMIN_ACTION_LOG_USER_FOLDER}/${safeLogUsername(username)}/latest.json`;
-}
-
-function getMonthlyUserLogPath(username: string, date = new Date(), part = 1) {
-  const safeUsername = safeLogUsername(username);
-  const yearMonth = getUtcYearMonth(date);
-  const suffix = part > 1 ? `-part-${part}` : "";
-  return `${ADMIN_ACTION_LOG_USER_FOLDER}/${safeUsername}/${yearMonth}${suffix}.json`;
-}
-
-function sanitizeLogDetails(value: any): any {
-  if (value === null || value === undefined) return value;
-
-  if (Array.isArray(value)) {
-    return value.map(sanitizeLogDetails);
-  }
-
-  if (typeof value === "object") {
-    const sanitized: any = {};
-    for (const [key, nestedValue] of Object.entries(value)) {
-      const lowerKey = key.toLowerCase();
-      if (
-        lowerKey.includes("password") ||
-        lowerKey.includes("token") ||
-        lowerKey.includes("secret") ||
-        lowerKey.includes("hash") ||
-        lowerKey.includes("salt") ||
-        lowerKey.includes("code")
-      ) {
-        sanitized[key] = "[redacted]";
-      } else {
-        sanitized[key] = sanitizeLogDetails(nestedValue);
-      }
-    }
-    return sanitized;
-  }
-
-  return value;
-}
-
-function getJsonSizeBytes(value: any) {
-  return Buffer.byteLength(JSON.stringify(value, null, 2), "utf8");
-}
-
-function formatBytes(bytes: number) {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${bytes} bytes`;
-}
-
-async function readBlobJsonArray<T = any>(blobPath: string): Promise<{ exists: boolean; items: T[]; sizeBytes: number; path: string }> {
-  try {
-    const result = await get(blobPath, { access: "public" });
-
-    if (!result || result.statusCode !== 200 || !result.stream) {
-      return { exists: false, items: [], sizeBytes: 0, path: blobPath };
-    }
-
-    const text = await new Response(result.stream).text();
-    const parsed = JSON.parse(text);
-
-    return {
-      exists: true,
-      items: Array.isArray(parsed) ? parsed : [],
-      sizeBytes: Buffer.byteLength(text, "utf8"),
-      path: blobPath
-    };
-  } catch (error) {
-    return { exists: false, items: [], sizeBytes: 0, path: blobPath };
-  }
-}
-
-async function writeBlobJsonArray<T = any>(blobPath: string, items: T[]) {
-  const json = JSON.stringify(items, null, 2);
-  const blob = await put(blobPath, json, {
-    access: "public",
-    contentType: "application/json",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    cacheControlMaxAge: 0
-  });
-
-  return {
-    path: blobPath,
-    pathname: blob.pathname,
-    url: blob.url,
-    sizeBytes: Buffer.byteLength(json, "utf8"),
-    entryCount: items.length
-  };
-}
-
-async function readAdminLogAlerts(): Promise<AdminConsoleAlert[]> {
-  const result = await readBlobJsonArray<AdminConsoleAlert>(ADMIN_ACTION_LOG_ALERTS_BLOB_PATH);
-  return result.items;
-}
-
-async function writeAdminLogAlerts(alerts: AdminConsoleAlert[]) {
-  return writeBlobJsonArray(ADMIN_ACTION_LOG_ALERTS_BLOB_PATH, alerts.slice(0, 300));
-}
-
-async function sendLogThresholdAlertEmail(alert: AdminConsoleAlert): Promise<{ success: boolean; realSent: boolean; recipients: string[]; error?: string }> {
-  try {
-    const users = await getAdminUsers();
-    const recipients = Array.from(new Set(
-      users
-        .filter((user) => user.isActive && (user.role === "owner" || user.role === "admin") && user.email)
-        .map((user) => user.email)
-    ));
-
-    if (recipients.length === 0) {
-      return { success: false, realSent: false, recipients: [], error: "No active owner/admin email recipients found." };
-    }
-
-    const transporter = getMailTransporter();
-
-    if (!transporter) {
-      console.warn("SMTP credentials not configured. Log threshold alert email simulated only.");
-      return { success: true, realSent: false, recipients };
-    }
-
-    const cleanEnvStr = (val?: string): string => {
-      if (!val) return "";
-      return val.replace(/^[\"']|[\"']$/g, "").trim();
-    };
-
-    const senderEmail = cleanEnvStr(process.env.SMTP_USER || "contact@biotech-agro.com");
-    const senderName = "Biotech Agro Admin Monitor";
-    const details = alert.details || {};
-
-    const mailOptions = {
-      from: `"${senderName}" <${senderEmail}>`,
-      to: recipients.join(","),
-      subject: `${alert.severity === "critical" ? "Critical" : "Warning"}: Admin log threshold reached`,
-      text: `${alert.title}\n\n${alert.message}\n\nUser: ${details.username || ""}\nLog file: ${details.path || ""}\nEntries: ${details.entryCount || 0}\nSize: ${details.sizeFormatted || ""}\nMonth: ${details.yearMonth || ""}\n\nThis alert was generated by the Biotech Agro admin monitor.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px; background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 16px; color: #1c1917;">
-          <h2 style="margin: 0 0 8px; color: ${alert.severity === "critical" ? "#b91c1c" : "#92400e"};">${alert.title}</h2>
-          <p style="font-size: 14px; line-height: 1.6; color: #44403c;">${alert.message}</p>
-          <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; padding: 16px; margin-top: 18px; font-size: 13px; line-height: 1.7;">
-            <p style="margin: 0;"><strong>User:</strong> ${details.username || ""}</p>
-            <p style="margin: 0;"><strong>Month:</strong> ${details.yearMonth || ""}</p>
-            <p style="margin: 0;"><strong>Part:</strong> ${details.part || 1}</p>
-            <p style="margin: 0;"><strong>Entries:</strong> ${details.entryCount || 0}</p>
-            <p style="margin: 0;"><strong>Size:</strong> ${details.sizeFormatted || ""}</p>
-            <p style="margin: 0; word-break: break-all;"><strong>Path:</strong> ${details.path || ""}</p>
-          </div>
-          <p style="font-size: 12px; color: #78716c; margin-top: 18px;">Open the owner console to review the alert and archive/export logs if needed.</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    return { success: true, realSent: true, recipients };
-  } catch (error: any) {
-    console.error("Failed to send log threshold alert email:", error?.message || error);
-    return { success: false, realSent: false, recipients: [], error: error?.message || String(error) };
-  }
-}
-
-async function createLogThresholdAlertIfNeeded(details: {
-  username: string;
-  path: string;
-  yearMonth: string;
-  part: number;
-  entryCount: number;
-  sizeBytes: number;
-}) {
-  const warningByEntries = details.entryCount >= ADMIN_ACTION_LOG_WARNING_ITEMS;
-  const warningBySize = details.sizeBytes >= ADMIN_ACTION_LOG_WARNING_BYTES;
-  const criticalByEntries = details.entryCount >= MAX_ADMIN_ACTION_LOG_ITEMS;
-  const criticalBySize = details.sizeBytes >= ADMIN_ACTION_LOG_HARD_BYTES;
-
-  if (!warningByEntries && !warningBySize && !criticalByEntries && !criticalBySize) {
-    return null;
-  }
-
-  const severity: "warning" | "critical" = criticalByEntries || criticalBySize ? "critical" : "warning";
-  const thresholdType = severity === "critical" ? "hard" : "warning";
-  const alertKey = `log-threshold:${safeLogUsername(details.username)}:${details.yearMonth}:part-${details.part}:${thresholdType}`;
-  const now = Date.now();
-  const cooldownMs = ADMIN_ACTION_LOG_ALERT_COOLDOWN_HOURS * 60 * 60 * 1000;
-  const existingAlerts = await readAdminLogAlerts();
-
-  const recentDuplicate = existingAlerts.find((alert) => {
-    if (alert.alertKey !== alertKey) return false;
-    const alertTime = new Date(alert.timestamp).getTime();
-    return !Number.isNaN(alertTime) && now - alertTime < cooldownMs;
-  });
-
-  if (recentDuplicate) {
-    return recentDuplicate;
-  }
-
-  const alert: AdminConsoleAlert = {
-    id: `alert_${now}_${crypto.randomUUID()}`,
-    timestamp: new Date(now).toISOString(),
-    type: "ADMIN_LOG_THRESHOLD",
-    severity,
-    isRead: false,
-    alertKey,
-    title: severity === "critical" ? "Admin action log reached hard limit" : "Admin action log is getting large",
-    message:
-      severity === "critical"
-        ? `The action log for ${details.username} reached the hard threshold. Newer entries will rotate to the next monthly part when needed.`
-        : `The action log for ${details.username} is approaching the monthly threshold. Review or archive logs soon.`,
-    details: sanitizeLogDetails({
-      username: details.username,
-      path: details.path,
-      yearMonth: details.yearMonth,
-      part: details.part,
-      entryCount: details.entryCount,
-      maxEntries: MAX_ADMIN_ACTION_LOG_ITEMS,
-      warningEntries: ADMIN_ACTION_LOG_WARNING_ITEMS,
-      sizeBytes: details.sizeBytes,
-      sizeFormatted: formatBytes(details.sizeBytes),
-      warningSizeBytes: ADMIN_ACTION_LOG_WARNING_BYTES,
-      hardSizeBytes: ADMIN_ACTION_LOG_HARD_BYTES
-    })
-  };
-
-  const emailResult = await sendLogThresholdAlertEmail(alert);
-  alert.email = {
-    attempted: true,
-    success: emailResult.success,
-    realSent: emailResult.realSent,
-    recipients: emailResult.recipients,
-    error: emailResult.error || ""
-  };
-
-  await writeAdminLogAlerts([alert, ...existingAlerts]);
-  return alert;
-}
-
-async function resolveActiveMonthlyLogFile(username: string, date = new Date()) {
-  for (let part = 1; part <= ADMIN_ACTION_LOG_MAX_PARTS; part++) {
-    const path = getMonthlyUserLogPath(username, date, part);
-    const result = await readBlobJsonArray<AdminActionLogEntry>(path);
-
-    if (!result.exists) {
-      return { path, logs: [], part, sizeBytes: 0, yearMonth: getUtcYearMonth(date) };
-    }
-
-    if (result.items.length < MAX_ADMIN_ACTION_LOG_ITEMS && result.sizeBytes < ADMIN_ACTION_LOG_HARD_BYTES) {
-      return { path, logs: result.items, part, sizeBytes: result.sizeBytes, yearMonth: getUtcYearMonth(date) };
-    }
-  }
-
-  const fallbackPart = ADMIN_ACTION_LOG_MAX_PARTS + 1;
-  const fallbackPath = getMonthlyUserLogPath(username, date, fallbackPart);
-  return { path: fallbackPath, logs: [], part: fallbackPart, sizeBytes: 0, yearMonth: getUtcYearMonth(date) };
-}
-
-async function readAdminUserLogFile(username: string): Promise<AdminActionLogEntry[]> {
-  const latest = await readBlobJsonArray<AdminActionLogEntry>(getLatestUserLogPath(username));
-  if (latest.exists && latest.items.length > 0) return latest.items;
-
-  const legacy = await readBlobJsonArray<AdminActionLogEntry>(getLegacyUserLogPath(username));
-  if (legacy.exists && legacy.items.length > 0) return legacy.items;
-
-  return [];
-}
-
-async function readMonthlyAdminUserLogFiles(username: string, yearMonth = getUtcYearMonth()) {
-  const safeUsername = safeLogUsername(username);
-  const paths: string[] = [];
-  const logs: AdminActionLogEntry[] = [];
-
-  for (let part = 1; part <= ADMIN_ACTION_LOG_MAX_PARTS; part++) {
-    const suffix = part > 1 ? `-part-${part}` : "";
-    const path = `${ADMIN_ACTION_LOG_USER_FOLDER}/${safeUsername}/${yearMonth}${suffix}.json`;
-    const result = await readBlobJsonArray<AdminActionLogEntry>(path);
-
-    if (!result.exists) {
-      if (part === 1) continue;
-      break;
-    }
-
-    paths.push(path);
-    logs.push(...result.items);
-  }
-
-  logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  return { yearMonth, paths, logs };
-}
-
-async function writeLatestUserLogFile(username: string, newEntry: AdminActionLogEntry) {
-  const latestPath = getLatestUserLogPath(username);
-  const latestResult = await readBlobJsonArray<AdminActionLogEntry>(latestPath);
-  const latestLogs = [newEntry, ...latestResult.items].slice(0, ADMIN_ACTION_LOG_LATEST_ITEMS);
-  return writeBlobJsonArray(latestPath, latestLogs);
-}
-
-async function writeMonthlyUserLogEntry(username: string, newEntry: AdminActionLogEntry, date = new Date()) {
-  const active = await resolveActiveMonthlyLogFile(username, date);
-  const updatedLogs = [newEntry, ...active.logs].slice(0, MAX_ADMIN_ACTION_LOG_ITEMS);
-  const monthlyLogFile = await writeBlobJsonArray(active.path, updatedLogs);
-  const latestLogFile = await writeLatestUserLogFile(username, newEntry);
-
-  const thresholdAlert = await createLogThresholdAlertIfNeeded({
-    username,
-    path: monthlyLogFile.path,
-    yearMonth: active.yearMonth,
-    part: active.part,
-    entryCount: monthlyLogFile.entryCount,
-    sizeBytes: monthlyLogFile.sizeBytes
-  });
-
-  return {
-    path: monthlyLogFile.path,
-    pathname: monthlyLogFile.pathname,
-    url: monthlyLogFile.url,
-    latestPath: latestLogFile.path,
-    latestUrl: latestLogFile.url,
-    yearMonth: active.yearMonth,
-    part: active.part,
-    entryCount: monthlyLogFile.entryCount,
-    sizeBytes: monthlyLogFile.sizeBytes,
-    sizeFormatted: formatBytes(monthlyLogFile.sizeBytes),
-    thresholdAlert
-  };
-}
-
-async function createAdminUserLogFile(
-  newUser: AdminUser,
-  createdBy?: AdminUser
-) {
-  const userLogPath = getMonthlyUserLogPath(newUser.username);
-
-  const firstEntry: AdminActionLogEntry = {
-    id: `log_${Date.now()}_${crypto.randomUUID()}`,
-    timestamp: new Date().toISOString(),
-    actor: {
-      username: createdBy?.username || "system",
-      displayName: createdBy?.displayName || "System",
-      email: createdBy?.email || "",
-      role: createdBy?.role || "system"
-    },
-    action: "USER_ACCOUNT_CREATED",
-    resourceType: "admin_user",
-    resourceId: newUser.username,
-    resourceLabel: `${newUser.displayName} (${newUser.role})`,
-    details: {
-      createdUsername: newUser.username,
-      createdEmail: newUser.email,
-      createdRole: newUser.role,
-      logFileCreated: userLogPath
-    }
-  };
-
-  const logFile = await writeMonthlyUserLogEntry(newUser.username, firstEntry);
-
-  console.log("Admin user monthly log file created:", {
-    username: newUser.username,
-    pathname: logFile.pathname,
-    url: logFile.url,
-    latestPath: logFile.latestPath
-  });
-
-  return logFile;
-}
-
-async function appendCurrentAdminActionLog(
-  req: express.Request,
-  log: {
-    action: string;
-    resourceType: string;
-    resourceId?: string;
-    resourceLabel?: string;
-    details?: any;
-  }
-) {
-  try {
-    const currentUser = (req as any).adminUser as AdminUser | undefined;
-
-    if (!currentUser) {
-      console.warn("Action log skipped: no admin user attached to request.");
-      return null;
-    }
-
-    const newEntry: AdminActionLogEntry = {
-      id: `log_${Date.now()}_${crypto.randomUUID()}`,
-      timestamp: new Date().toISOString(),
-      actor: {
-        username: currentUser.username,
-        displayName: currentUser.displayName,
-        email: currentUser.email,
-        role: currentUser.role
-      },
-      action: log.action,
-      resourceType: log.resourceType,
-      resourceId: log.resourceId || "",
-      resourceLabel: log.resourceLabel || "",
-      details: sanitizeLogDetails(log.details || {})
-    };
-
-    const logFile = await writeMonthlyUserLogEntry(currentUser.username, newEntry);
-
-    return {
-      ...logFile,
-      entry: newEntry
-    };
-  } catch (error: any) {
-    console.error("Failed to append admin action log:", error?.message || error);
-    return null;
-  }
-}
-
 // Lazy-initialized Gemini API client
 let aiClient: any = null;
 function getGeminiClient() {
@@ -825,9 +339,9 @@ function getGeminiClient() {
       apiKey,
       httpOptions: {
         headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
+          "User-Agent": "aistudio-build"
+    }
+    }
     });
   }
   return aiClient;
@@ -859,8 +373,8 @@ function getMailTransporter() {
       service: "gmail",
       auth: {
         user,
-        pass,
-      },
+        pass
+    }
     });
   }
 
@@ -870,7 +384,7 @@ function getMailTransporter() {
     secure: port === 465,
     auth: {
       user,
-      pass,
+      pass
     },
     tls: {
       // Allow self-signed or TLS handshakes comfortably
@@ -1283,25 +797,12 @@ app.post("/api/media/upload", requireAdmin, async (req, res) => {
       addRandomSuffix: false
     });
 
-    const actionLog = await appendCurrentAdminActionLog(req, {
-      action: "UPLOAD_MEDIA",
-      resourceType: "media",
-      resourceId: blob.pathname,
-      resourceLabel: safeFilename || "image",
-      details: {
-        folder: safeFolder,
-        pathname: blob.pathname,
-        contentType: blob.contentType,
-        sizeBytes: buffer.length
-      }
-    });
 
     return res.json({
       success: true,
       url: blob.url,
       pathname: blob.pathname,
-      contentType: blob.contentType,
-      actionLog
+      contentType: blob.contentType
     });
   } catch (error: any) {
     console.error("Blob upload error:", error);
@@ -1345,8 +846,8 @@ app.post("/api/messages", async (req, res) => {
     subject: String(subject).slice(0, 200),
     message: String(message).slice(0, 3000),
     isRead: false,
-    receivedAt: new Date().toISOString(),
-  };
+    receivedAt: new Date().toISOString()
+    };
 
   db.messages = db.messages || [];
   db.messages.unshift(newMessage);
@@ -1426,7 +927,6 @@ app.post("/api/auth/login", async (req, res) => {
     users[userIndex] = {
       ...user,
       lastLogin: now,
-      lastSeenAt: now,
       resetCode: null
     };
 
@@ -1601,33 +1101,26 @@ app.get("/api/auth/verify", requireAdmin, (req, res) => {
   });
 });
 
-app.post("/api/auth/ping", requireAdmin, async (req, res) => {
-  try {
-    const currentUser = (req as any).adminUser as AdminUser;
-    const users = await getAdminUsers();
-    const now = new Date().toISOString();
+app.post("/api/auth/ping", (req, res) => {
+  const authHeader = req.headers.authorization;
 
-    const updatedUsers = users.map((user) =>
-      user.username === currentUser.username
-        ? {
-            ...user,
-            lastSeenAt: now
-          }
-        : user
-    );
-
-    await writeAdminUsersToBlob(updatedUsers);
-
-    const updatedUser = updatedUsers.find((user) => user.username === currentUser.username);
-
-    res.json({
-      success: true,
-      user: updatedUser ? publicAdminUser(updatedUser) : null
-    });
-  } catch (error: any) {
-    console.error("Admin ping failed:", error);
-    res.status(500).json({ error: error?.message || "Admin ping failed." });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Access denied. Private session missing." });
   }
+
+  const token = authHeader.split(" ")[1];
+  const username = getSessionUsernameFromToken(token);
+
+  if (!username) {
+    return res.status(403).json({ error: "Invalid or expired admin session token." });
+  }
+
+  // Presence tracking was intentionally removed to avoid frequent Blob reads/writes.
+  // This endpoint now only confirms that the local session token is still structurally valid.
+  return res.json({
+    success: true,
+    username
+  });
 });
 
 app.post("/api/admin/sync-public-data", requireAdmin, async (req, res) => {
@@ -1639,18 +1132,6 @@ app.post("/api/admin/sync-public-data", requireAdmin, async (req, res) => {
 
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: "SYNC_PUBLIC_DATA",
-    resourceType: "public_content",
-    resourceId: PUBLIC_DATA_BLOB_PATH,
-    resourceLabel: "Public website data",
-    details: {
-      blobPath: PUBLIC_DATA_BLOB_PATH,
-      products: Array.isArray(db.products) ? db.products.length : 0,
-      services: Array.isArray(db.services) ? db.services.length : 0,
-      hasSiteContent: Boolean(db.siteContent)
-    }
-  });
 
   return res.json({
     success: true,
@@ -1658,8 +1139,7 @@ app.post("/api/admin/sync-public-data", requireAdmin, async (req, res) => {
     blobPath: PUBLIC_DATA_BLOB_PATH,
     products: Array.isArray(db.products) ? db.products.length : 0,
     services: Array.isArray(db.services) ? db.services.length : 0,
-    hasSiteContent: Boolean(db.siteContent),
-    actionLog
+    hasSiteContent: Boolean(db.siteContent)
   });
 });
 
@@ -1673,8 +1153,7 @@ app.get("/api/auth/settings", requireAdmin, async (req, res) => {
     adminEmail: user.email,
     role: user.role,
     isDefaultPassword: false,
-    lastLogin: user.lastLogin || "",
-    lastSeenAt: user.lastSeenAt || ""
+    lastLogin: user.lastLogin || ""
   });
 });
 
@@ -1723,23 +1202,11 @@ app.put("/api/auth/update-email", requireAdmin, async (req, res) => {
       }
     }
 
-    const actionLog = await appendCurrentAdminActionLog(req, {
-      action: "UPDATE_OWN_EMAIL",
-      resourceType: "admin_user",
-      resourceId: currentUser.username,
-      resourceLabel: currentUser.displayName,
-      details: {
-        username: currentUser.username,
-        previousEmail: currentUser.email,
-        newEmail: cleanEmail
-      }
-    });
 
     return res.json({
       success: true,
       email: cleanEmail,
-      message: "Registered account email updated successfully.",
-      actionLog
+      message: "Registered account email updated successfully."
     });
   } catch (error: any) {
     console.error("Update email failed:", error);
@@ -1787,20 +1254,10 @@ app.put("/api/auth/update-password", requireAdmin, async (req, res) => {
       }
     }
 
-    const actionLog = await appendCurrentAdminActionLog(req, {
-      action: "UPDATE_OWN_PASSWORD",
-      resourceType: "admin_user",
-      resourceId: currentUser.username,
-      resourceLabel: currentUser.displayName,
-      details: {
-        username: currentUser.username
-      }
-    });
 
     return res.json({
       success: true,
-      message: "Your password was updated successfully.",
-      actionLog
+      message: "Your password was updated successfully."
     });
   } catch (error: any) {
     console.error("Update password failed:", error);
@@ -1812,13 +1269,10 @@ app.put("/api/auth/update-password", requireAdmin, async (req, res) => {
 app.get("/api/admin/users", requireAdmin, requireOwner, async (req, res) => {
   try {
     const users = await getAdminUsers();
-    const logAlerts = await readAdminLogAlerts();
 
     res.json({
       success: true,
-      users: users.map(publicAdminUser),
-      logAlerts: logAlerts.slice(0, 20),
-      unreadLogAlertsCount: logAlerts.filter((alert) => !alert.isRead).length
+      users: users.map(publicAdminUser)
     });
   } catch (error: any) {
     console.error("Load admin users failed:", error);
@@ -1868,7 +1322,6 @@ app.post("/api/admin/users", requireAdmin, requireOwner, async (req, res) => {
       isActive: true,
       createdAt: new Date().toISOString(),
       lastLogin: "",
-      lastSeenAt: "",
       resetCode: null
     };
 
@@ -1878,26 +1331,6 @@ app.post("/api/admin/users", requireAdmin, requireOwner, async (req, res) => {
 
     const currentUser = (req as any).adminUser as AdminUser | undefined;
 
-    let userLogFile: any = null;
-
-    try {
-      userLogFile = await createAdminUserLogFile(newUser, currentUser);
-    } catch (logError: any) {
-      console.error("User was created, but log file creation failed:", logError?.message || logError);
-    }
-
-    const ownerActionLog = await appendCurrentAdminActionLog(req, {
-      action: "CREATE_ADMIN_USER",
-      resourceType: "admin_user",
-      resourceId: newUser.username,
-      resourceLabel: `${newUser.displayName} (${newUser.role})`,
-      details: {
-        createdUsername: newUser.username,
-        createdEmail: newUser.email,
-        createdRole: newUser.role,
-        userLogFile
-      }
-    });
 
     const inviteEmailResult = await sendAdminInviteEmail(newUser.email, {
       username: newUser.username,
@@ -1909,8 +1342,6 @@ app.post("/api/admin/users", requireAdmin, requireOwner, async (req, res) => {
     return res.status(201).json({
       success: true,
       user: publicAdminUser(newUser),
-      userLogFile,
-      ownerActionLog,
       inviteEmail: {
         success: inviteEmailResult.success,
         realSent: inviteEmailResult.realSent,
@@ -1994,33 +1425,11 @@ app.put("/api/admin/users/:username", requireAdmin, requireOwner, async (req, re
 
     await writeAdminUsersToBlob(users);
 
-    const actionLog = await appendCurrentAdminActionLog(req, {
-      action: "UPDATE_ADMIN_USER",
-      resourceType: "admin_user",
-      resourceId: users[userIndex].username,
-      resourceLabel: `${users[userIndex].displayName} (${users[userIndex].role})`,
-      details: {
-        username: users[userIndex].username,
-        before: {
-          displayName: previousUser.displayName,
-          email: previousUser.email,
-          role: previousUser.role,
-          isActive: previousUser.isActive
-        },
-        after: {
-          displayName: users[userIndex].displayName,
-          email: users[userIndex].email,
-          role: users[userIndex].role,
-          isActive: users[userIndex].isActive
-        }
-      }
-    });
 
     return res.json({
       success: true,
       user: publicAdminUser(users[userIndex]),
-      users: users.map(publicAdminUser),
-      actionLog
+      users: users.map(publicAdminUser)
     });
   } catch (error: any) {
     console.error("Update admin user failed:", error);
@@ -2058,22 +1467,11 @@ app.put("/api/admin/users/:username/password", requireAdmin, requireOwner, async
 
     await writeAdminUsersToBlob(users);
 
-    const actionLog = await appendCurrentAdminActionLog(req, {
-      action: "RESET_ADMIN_USER_PASSWORD",
-      resourceType: "admin_user",
-      resourceId: users[userIndex].username,
-      resourceLabel: users[userIndex].displayName,
-      details: {
-        username: users[userIndex].username,
-        role: users[userIndex].role
-      }
-    });
 
     return res.json({
       success: true,
       message: "Admin user password updated.",
-      user: publicAdminUser(users[userIndex]),
-      actionLog
+      user: publicAdminUser(users[userIndex])
     });
   } catch (error: any) {
     console.error("Update admin user password failed:", error);
@@ -2108,23 +1506,11 @@ app.delete("/api/admin/users/:username", requireAdmin, requireOwner, async (req,
 
     await writeAdminUsersToBlob(remainingUsers);
 
-    const actionLog = await appendCurrentAdminActionLog(req, {
-      action: "DELETE_ADMIN_USER",
-      resourceType: "admin_user",
-      resourceId: userToDelete.username,
-      resourceLabel: `${userToDelete.displayName} (${userToDelete.role})`,
-      details: {
-        username: userToDelete.username,
-        email: userToDelete.email,
-        role: userToDelete.role
-      }
-    });
 
     return res.json({
       success: true,
       message: "Admin user deleted.",
-      users: remainingUsers.map(publicAdminUser),
-      actionLog
+      users: remainingUsers.map(publicAdminUser)
     });
   } catch (error: any) {
     console.error("Delete admin user failed:", error);
@@ -2135,133 +1521,6 @@ app.delete("/api/admin/users/:username", requireAdmin, requireOwner, async (req,
   }
 });
 
-app.get("/api/admin/users/:username/log", requireAdmin, requireOwner, async (req, res) => {
-  try {
-    const username = safeLogUsername(req.params.username);
-    const requestedMonth =
-      typeof req.query.month === "string" && /^\d{4}-\d{2}$/.test(req.query.month)
-        ? req.query.month
-        : getUtcYearMonth();
-    const includeMonthly = req.query.month !== undefined || req.query.full === "true";
-
-    const latestPath = getLatestUserLogPath(username);
-    const latestResult = await readBlobJsonArray<AdminActionLogEntry>(latestPath);
-    const legacyPath = getLegacyUserLogPath(username);
-    const legacyResult = latestResult.exists ? { exists: false, items: [] as AdminActionLogEntry[] } : await readBlobJsonArray<AdminActionLogEntry>(legacyPath);
-    const latestLogs = latestResult.exists ? latestResult.items : legacyResult.items;
-
-    if (includeMonthly) {
-      const monthly = await readMonthlyAdminUserLogFiles(username, requestedMonth);
-
-      return res.json({
-        success: true,
-        username,
-        mode: "monthly",
-        month: requestedMonth,
-        latestPath,
-        paths: monthly.paths,
-        logs: monthly.logs,
-        latestLogs,
-        legacyPath: legacyResult.exists ? legacyPath : ""
-      });
-    }
-
-    if (!latestResult.exists && !legacyResult.exists) {
-      return res.status(404).json({
-        success: false,
-        error: "User log file not found.",
-        latestPath,
-        legacyPath
-      });
-    }
-
-    return res.json({
-      success: true,
-      username,
-      mode: latestResult.exists ? "latest" : "legacy",
-      path: latestResult.exists ? latestPath : legacyPath,
-      latestPath,
-      legacyPath: legacyResult.exists ? legacyPath : "",
-      logs: latestLogs
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      error: error?.message || "Failed to read user log file."
-    });
-  }
-});
-
-app.get("/api/admin/log-alerts", requireAdmin, requireOwner, async (req, res) => {
-  try {
-    const alerts = await readAdminLogAlerts();
-
-    return res.json({
-      success: true,
-      alerts,
-      unreadCount: alerts.filter((alert) => !alert.isRead).length
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      error: error?.message || "Failed to read admin log alerts."
-    });
-  }
-});
-
-app.put("/api/admin/log-alerts/:id/read", requireAdmin, requireOwner, async (req, res) => {
-  try {
-    const alertId = String(req.params.id || "");
-    const alerts = await readAdminLogAlerts();
-    const updatedAlerts = alerts.map((alert) =>
-      alert.id === alertId
-        ? {
-            ...alert,
-            isRead: true,
-            readAt: new Date().toISOString()
-          }
-        : alert
-    );
-
-    await writeAdminLogAlerts(updatedAlerts);
-
-    return res.json({
-      success: true,
-      alerts: updatedAlerts,
-      unreadCount: updatedAlerts.filter((alert) => !alert.isRead).length
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      error: error?.message || "Failed to mark admin log alert as read."
-    });
-  }
-});
-
-app.put("/api/admin/log-alerts/read-all", requireAdmin, requireOwner, async (req, res) => {
-  try {
-    const readAt = new Date().toISOString();
-    const alerts = await readAdminLogAlerts();
-    const updatedAlerts = alerts.map((alert) => ({
-      ...alert,
-      isRead: true,
-      readAt: alert.readAt || readAt
-    }));
-
-    await writeAdminLogAlerts(updatedAlerts);
-
-    return res.json({
-      success: true,
-      alerts: updatedAlerts,
-      unreadCount: 0
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      error: error?.message || "Failed to mark admin log alerts as read."
-    });
-  }
-});
 
 // Update text copy sections// Update text copy sections
 // Update text copy sections
@@ -2325,18 +1584,8 @@ app.put("/api/content/text", requireAdmin, async (req, res) => {
 
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: "UPDATE_CONTENT_SECTION",
-    resourceType: "site_content",
-    resourceId: section,
-    resourceLabel: section,
-    details: {
-      section,
-      changedKeys: typeof data === "object" && data !== null ? Object.keys(data) : []
-    }
-  });
 
-  res.json({ success: true, content: db.siteContent, actionLog });
+  res.json({ success: true, content: db.siteContent });
 });
 
 // Add a product catalog item
@@ -2357,26 +1606,15 @@ app.post("/api/products", requireAdmin, async (req, res) => {
     specifications: Array.isArray(productData.specifications) ? productData.specifications : [],
     availableItems: typeof productData.availableItems === "number" ? productData.availableItems : (parseInt(productData.availableItems, 10) || 50),
     productionDate: productData.productionDate || new Date().toISOString().slice(0, 10),
-    expirationDate: productData.expirationDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-  };
+    expirationDate: productData.expirationDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    };
 
   db.products = db.products || [];
   db.products.push(newProduct);
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: "CREATE_PRODUCT",
-    resourceType: "product",
-    resourceId: newProduct.id,
-    resourceLabel: newProduct.name,
-    details: {
-      name: newProduct.name,
-      category: newProduct.category,
-      status: newProduct.status
-    }
-  });
 
-  res.status(201).json({ success: true, product: newProduct, actionLog });
+  res.status(201).json({ success: true, product: newProduct });
 });
 
 // Update a product catalog item
@@ -2400,18 +1638,8 @@ app.put("/api/products/:id", requireAdmin, async (req, res) => {
 
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: "UPDATE_PRODUCT",
-    resourceType: "product",
-    resourceId: id,
-    resourceLabel: db.products[index].name,
-    details: {
-      productId: id,
-      changedKeys: Object.keys(updateData || {})
-    }
-  });
 
-  res.json({ success: true, product: db.products[index], actionLog });
+  res.json({ success: true, product: db.products[index] });
 });
 
 // Delete a product catalog item
@@ -2431,18 +1659,8 @@ app.delete("/api/products/:id", requireAdmin, async (req, res) => {
 
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: "DELETE_PRODUCT",
-    resourceType: "product",
-    resourceId: id,
-    resourceLabel: deletedProduct?.name || id,
-    details: {
-      productId: id,
-      name: deletedProduct?.name || ""
-    }
-  });
 
-  res.json({ success: true, message: "Product deleted from catalog.", actionLog });
+  res.json({ success: true, message: "Product deleted from catalog." });
 });
 
 // Add a consultation service item
@@ -2458,26 +1676,15 @@ app.post("/api/services", requireAdmin, async (req, res) => {
     price: serviceData.price || "Contact for Quote",
     duration: serviceData.duration || "Custom duration",
     image: serviceData.image || "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=600",
-    benefits: Array.isArray(serviceData.benefits) ? serviceData.benefits : [],
-  };
+    benefits: Array.isArray(serviceData.benefits) ? serviceData.benefits : []
+    };
 
   db.services = db.services || [];
   db.services.push(newService);
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: "CREATE_SERVICE",
-    resourceType: "service",
-    resourceId: newService.id,
-    resourceLabel: newService.name,
-    details: {
-      name: newService.name,
-      price: newService.price,
-      duration: newService.duration
-    }
-  });
 
-  res.status(201).json({ success: true, service: newService, actionLog });
+  res.status(201).json({ success: true, service: newService });
 });
 
 // Update a consultation service item
@@ -2501,18 +1708,8 @@ app.put("/api/services/:id", requireAdmin, async (req, res) => {
 
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: "UPDATE_SERVICE",
-    resourceType: "service",
-    resourceId: id,
-    resourceLabel: db.services[index].name,
-    details: {
-      serviceId: id,
-      changedKeys: Object.keys(updateData || {})
-    }
-  });
 
-  res.json({ success: true, service: db.services[index], actionLog });
+  res.json({ success: true, service: db.services[index] });
 });
 
 // Delete a consultation service item
@@ -2532,18 +1729,8 @@ app.delete("/api/services/:id", requireAdmin, async (req, res) => {
 
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: "DELETE_SERVICE",
-    resourceType: "service",
-    resourceId: id,
-    resourceLabel: deletedService?.name || id,
-    details: {
-      serviceId: id,
-      name: deletedService?.name || ""
-    }
-  });
 
-  res.json({ success: true, message: "Consultation package deleted.", actionLog });
+  res.json({ success: true, message: "Consultation package deleted." });
 });
 
 // Admin list all contact forms
@@ -2568,19 +1755,8 @@ app.put("/api/messages/:id/read", requireAdmin, async  (req, res) => {
   msg.isRead = !msg.isRead;
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: msg.isRead ? "MARK_MESSAGE_READ" : "MARK_MESSAGE_UNREAD",
-    resourceType: "contact_message",
-    resourceId: id,
-    resourceLabel: msg.subject || id,
-    details: {
-      messageId: id,
-      senderEmail: msg.senderEmail || "",
-      isRead: msg.isRead
-    }
-  });
 
-  res.json({ success: true, message: msg, actionLog });
+  res.json({ success: true, message: msg });
 });
 
 // Admin delete contact message
@@ -2594,19 +1770,8 @@ app.delete("/api/messages/:id", requireAdmin, async (req, res) => {
   db.messages = db.messages.filter((m: any) => m.id !== id);
   await saveDBState(db);
 
-  const actionLog = await appendCurrentAdminActionLog(req, {
-    action: "DELETE_MESSAGE",
-    resourceType: "contact_message",
-    resourceId: id,
-    resourceLabel: deletedMessage?.subject || id,
-    details: {
-      messageId: id,
-      senderEmail: deletedMessage?.senderEmail || "",
-      subject: deletedMessage?.subject || ""
-    }
-  });
 
-  res.json({ success: true, message: "Contact lead successfully removed.", actionLog });
+  res.json({ success: true, message: "Contact lead successfully removed." });
 });
 
 // Biotech Agro AI Copywriter Assistant powered by Gemini 3.5 Flash
@@ -2636,11 +1801,11 @@ Fulfill their request in a highly academic yet commercially appealing and access
             {
               role: "user",
               parts: [{
-                text: `${systemInstruction}\n\nRequest: ${prompt}`,
-              }],
-            },
-          ],
-        });
+                text: `${systemInstruction}\n\nRequest: ${prompt}`
+    }]
+    },
+          ]
+    });
 
         const textOutput = result.text?.trim();
         if (textOutput) {
