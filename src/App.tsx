@@ -5982,7 +5982,7 @@ const handleUploadHeroBackground = async (file: File) => {
                                 [`description_${adminFooterLanguage}`]: e.target.value 
                               })}
                               className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900 focus:outline-hidden focus:border-emerald-705 transition-all font-light"
-                              placeholder="Describe your Tunisian biotechnology hub..."
+                              placeholder="Describe your Biotech Agro hub..."
                             />
                           </div>
 
@@ -5997,7 +5997,7 @@ const handleUploadHeroBackground = async (file: File) => {
                                 [`copyright_${adminFooterLanguage}`]: e.target.value 
                               })}
                               className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900 focus:outline-hidden focus:border-emerald-705 transition-all font-light"
-                              placeholder="e.g. © 2026 Tunisian Mycelium Biotech..."
+                              placeholder="e.g. © 2026 Biotech Agro..."
                             />
                           </div>
 
