@@ -20,9 +20,11 @@ const WRITABLE_DB_PATH = process.env.VERCEL ? "/tmp/biotechagro-db.json" : SOURC
 const PUBLIC_DATA_BLOB_PATH = "data/public-content.json";
 const ADMIN_USERS_BLOB_PATH = process.env.ADMIN_USERS_BLOB_PATH || "data/admin-users.json";
 const SESSION_SECRET = process.env.SESSION_SECRET || "mycotunisia_secret_session_2026";
+const ADMIN_ACTION_LOG_USER_FOLDER = process.env.ADMIN_ACTION_LOG_USER_FOLDER || "data/admin-action-logs/users";
+const MAX_ADMIN_ACTION_LOG_ITEMS = parseInt(process.env.MAX_ADMIN_ACTION_LOG_ITEMS || "1000", 10);
 
-let publicDataCache: any | null = null;
-let adminUsersCache: AdminUser[] | null = null;
+// Do not cache Blob-backed JSON in memory. Vercel serverless instances can keep stale memory
+// and accidentally overwrite newer Blob data during ping/login/update requests.
 
 function ensureWritableDB() {
   try {
@@ -71,10 +73,6 @@ function mergePublicWebsiteData(baseDb: any, publicData: any) {
 
 async function readPublicWebsiteDataFromBlob() {
   try {
-    if (publicDataCache) {
-      return publicDataCache;
-    }
-
     const result = await get(PUBLIC_DATA_BLOB_PATH, { access: "public" });
 
     if (!result || result.statusCode !== 200 || !result.stream) {
@@ -84,7 +82,6 @@ async function readPublicWebsiteDataFromBlob() {
     const text = await new Response(result.stream).text();
     const parsed = JSON.parse(text);
 
-    publicDataCache = parsed;
     return parsed;
   } catch (error: any) {
     // This is normal the first time, before data/public-content.json exists.
@@ -95,8 +92,6 @@ async function readPublicWebsiteDataFromBlob() {
 
 async function writePublicWebsiteDataToBlob(db: any) {
   const publicData = extractPublicWebsiteData(db);
-
-  publicDataCache = publicData;
 
   await put(PUBLIC_DATA_BLOB_PATH, JSON.stringify(publicData, null, 2), {
     access: "public",
@@ -220,56 +215,72 @@ function publicAdminUser(user: AdminUser) {
   };
 }
 
-async function readAdminUsersFromBlob(): Promise<{ users: AdminUser[] | null; shouldSeed: boolean }> {
-  try {
-    if (adminUsersCache) {
-      return { users: adminUsersCache, shouldSeed: false };
-    }
+type AdminUsersReadResult = {
+  users: AdminUser[] | null;
+  notFound: boolean;
+  error?: any;
+};
 
+function isBlobNotFoundError(error: any) {
+  const message = String(error?.message || error || "").toLowerCase();
+
+  return (
+    message.includes("404") ||
+    message.includes("not found") ||
+    message.includes("no such") ||
+    message.includes("does not exist") ||
+    message.includes("could not be found")
+  );
+}
+
+async function readAdminUsersFromBlob(): Promise<AdminUsersReadResult> {
+  try {
     const result = await get(ADMIN_USERS_BLOB_PATH, { access: "public" });
 
-    if (!result || result.statusCode === 404) {
-      return { users: null, shouldSeed: true };
+    if (!result || result.statusCode === 404 || !result.stream) {
+      return { users: null, notFound: true };
     }
 
-    if (result.statusCode !== 200 || !result.stream) {
-      console.warn("Admin users Blob was reached but not readable.", {
-        statusCode: result.statusCode
-      });
-      return { users: null, shouldSeed: false };
+    if (result.statusCode !== 200) {
+      return {
+        users: null,
+        notFound: result.statusCode === 404,
+        error: new Error(`Unexpected Blob status while reading admin users: ${result.statusCode}`)
+      };
     }
 
     const text = await new Response(result.stream).text();
     const parsed = JSON.parse(text);
 
     if (!Array.isArray(parsed)) {
-      console.warn("Admin users Blob exists but does not contain an array.");
-      return { users: null, shouldSeed: false };
+      return {
+        users: null,
+        notFound: false,
+        error: new Error("Admin users JSON exists but is not an array.")
+      };
     }
 
-    adminUsersCache = parsed;
-    return { users: parsed, shouldSeed: false };
+    return { users: parsed, notFound: false };
   } catch (error: any) {
-    const message = String(error?.message || error || "");
-    const looksMissing = /not found|404|does not exist|no such/i.test(message);
+    if (isBlobNotFoundError(error)) {
+      console.warn("Admin users Blob not found yet. It will be seeded once.", error?.message || error);
+      return { users: null, notFound: true, error };
+    }
 
-    console.warn("Unable to read admin users Blob.", message);
-
-    return {
-      users: null,
-      shouldSeed: looksMissing || process.env.ALLOW_ADMIN_USERS_SEED_ON_BLOB_ERROR === "true"
-    };
+    console.error("Failed to read persistent admin users JSON from Vercel Blob:", error?.message || error);
+    return { users: null, notFound: false, error };
   }
 }
 
-async function writeAdminUsersToBlob(users: AdminUser[]) {
-  adminUsersCache = users;
-
+async function writeAdminUsersToBlob(
+  users: AdminUser[],
+  options: { allowOverwrite?: boolean } = {}
+) {
   await put(ADMIN_USERS_BLOB_PATH, JSON.stringify(users, null, 2), {
     access: "public",
     contentType: "application/json",
     addRandomSuffix: false,
-    allowOverwrite: true,
+    allowOverwrite: options.allowOverwrite ?? true,
     cacheControlMaxAge: 0
   });
 
@@ -277,15 +288,19 @@ async function writeAdminUsersToBlob(users: AdminUser[]) {
 }
 
 async function getAdminUsers(seedDb?: any): Promise<AdminUser[]> {
-  const blobResult = await readAdminUsersFromBlob();
+  const readResult = await readAdminUsersFromBlob();
 
-  if (blobResult.users && blobResult.users.length > 0) {
-    return blobResult.users;
+  if (readResult.users && readResult.users.length > 0) {
+    return readResult.users;
   }
 
-  if (!blobResult.shouldSeed) {
+  if (readResult.users && readResult.users.length === 0) {
+    return readResult.users;
+  }
+
+  if (readResult.error && !readResult.notFound) {
     throw new Error(
-      "Admin users database is temporarily inaccessible. Refusing to overwrite admin-users.json with a seed account."
+      "Could not read persistent admin users JSON from Vercel Blob. Existing users were not overwritten. Check BLOB_READ_WRITE_TOKEN and Vercel Blob access."
     );
   }
 
@@ -312,13 +327,204 @@ async function getAdminUsers(seedDb?: any): Promise<AdminUser[]> {
       isActive: true,
       createdAt: new Date().toISOString(),
       lastLogin: adminSettings.lastLogin || "",
-      lastSeenAt: ""
+      lastSeenAt: "",
+      resetCode: null
     }
   ];
 
-  await writeAdminUsersToBlob(seedUsers);
+  try {
+    await writeAdminUsersToBlob(seedUsers, { allowOverwrite: false });
+  } catch (error: any) {
+    throw new Error(
+      "Admin users JSON could not be seeded without overwrite. Existing users were preserved. Please check Vercel Blob data/admin-users.json and redeploy."
+    );
+  }
 
   return seedUsers;
+}
+
+type AdminActionLogEntry = {
+  id: string;
+  timestamp: string;
+  actor: {
+    username: string;
+    displayName?: string;
+    email?: string;
+    role?: string;
+  };
+  action: string;
+  resourceType: string;
+  resourceId?: string;
+  resourceLabel?: string;
+  details?: any;
+};
+
+function safeLogUsername(username: string) {
+  return String(username || "unknown")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || "unknown";
+}
+
+function sanitizeLogDetails(value: any): any {
+  if (value === null || value === undefined) return value;
+
+  if (Array.isArray(value)) {
+    return value.map(sanitizeLogDetails);
+  }
+
+  if (typeof value === "object") {
+    const sanitized: any = {};
+    for (const [key, nestedValue] of Object.entries(value)) {
+      const lowerKey = key.toLowerCase();
+      if (
+        lowerKey.includes("password") ||
+        lowerKey.includes("token") ||
+        lowerKey.includes("secret") ||
+        lowerKey.includes("hash") ||
+        lowerKey.includes("salt") ||
+        lowerKey.includes("code")
+      ) {
+        sanitized[key] = "[redacted]";
+      } else {
+        sanitized[key] = sanitizeLogDetails(nestedValue);
+      }
+    }
+    return sanitized;
+  }
+
+  return value;
+}
+
+async function readAdminUserLogFile(username: string): Promise<AdminActionLogEntry[]> {
+  try {
+    const usernameForPath = safeLogUsername(username);
+    const userLogPath = `${ADMIN_ACTION_LOG_USER_FOLDER}/${usernameForPath}.json`;
+
+    const result = await get(userLogPath, { access: "public" });
+
+    if (!result || result.statusCode !== 200 || !result.stream) {
+      return [];
+    }
+
+    const text = await new Response(result.stream).text();
+    const parsed = JSON.parse(text);
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+async function writeAdminUserLogFile(username: string, logs: AdminActionLogEntry[]) {
+  const usernameForPath = safeLogUsername(username);
+  const userLogPath = `${ADMIN_ACTION_LOG_USER_FOLDER}/${usernameForPath}.json`;
+
+  const blob = await put(userLogPath, JSON.stringify(logs, null, 2), {
+    access: "public",
+    contentType: "application/json",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    cacheControlMaxAge: 0
+  });
+
+  return {
+    path: userLogPath,
+    pathname: blob.pathname,
+    url: blob.url
+  };
+}
+
+async function createAdminUserLogFile(
+  newUser: AdminUser,
+  createdBy?: AdminUser
+) {
+  const usernameForPath = safeLogUsername(newUser.username);
+  const userLogPath = `${ADMIN_ACTION_LOG_USER_FOLDER}/${usernameForPath}.json`;
+  const previousLogs = await readAdminUserLogFile(newUser.username);
+
+  const firstEntry: AdminActionLogEntry = {
+    id: `log_${Date.now()}_${crypto.randomUUID()}`,
+    timestamp: new Date().toISOString(),
+    actor: {
+      username: createdBy?.username || "system",
+      displayName: createdBy?.displayName || "System",
+      email: createdBy?.email || "",
+      role: createdBy?.role || "system"
+    },
+    action: "USER_ACCOUNT_CREATED",
+    resourceType: "admin_user",
+    resourceId: newUser.username,
+    resourceLabel: `${newUser.displayName} (${newUser.role})`,
+    details: {
+      createdUsername: newUser.username,
+      createdEmail: newUser.email,
+      createdRole: newUser.role,
+      logFileCreated: userLogPath
+    }
+  };
+
+  const updatedLogs = [firstEntry, ...previousLogs].slice(0, MAX_ADMIN_ACTION_LOG_ITEMS);
+  const logFile = await writeAdminUserLogFile(newUser.username, updatedLogs);
+
+  console.log("Admin user log file created:", {
+    username: newUser.username,
+    pathname: logFile.pathname,
+    url: logFile.url
+  });
+
+  return logFile;
+}
+
+async function appendCurrentAdminActionLog(
+  req: express.Request,
+  log: {
+    action: string;
+    resourceType: string;
+    resourceId?: string;
+    resourceLabel?: string;
+    details?: any;
+  }
+) {
+  try {
+    const currentUser = (req as any).adminUser as AdminUser | undefined;
+
+    if (!currentUser) {
+      console.warn("Action log skipped: no admin user attached to request.");
+      return null;
+    }
+
+    const previousLogs = await readAdminUserLogFile(currentUser.username);
+
+    const newEntry: AdminActionLogEntry = {
+      id: `log_${Date.now()}_${crypto.randomUUID()}`,
+      timestamp: new Date().toISOString(),
+      actor: {
+        username: currentUser.username,
+        displayName: currentUser.displayName,
+        email: currentUser.email,
+        role: currentUser.role
+      },
+      action: log.action,
+      resourceType: log.resourceType,
+      resourceId: log.resourceId || "",
+      resourceLabel: log.resourceLabel || "",
+      details: sanitizeLogDetails(log.details || {})
+    };
+
+    const updatedLogs = [newEntry, ...previousLogs].slice(0, MAX_ADMIN_ACTION_LOG_ITEMS);
+    const logFile = await writeAdminUserLogFile(currentUser.username, updatedLogs);
+
+    return {
+      ...logFile,
+      entry: newEntry
+    };
+  } catch (error: any) {
+    console.error("Failed to append admin action log:", error?.message || error);
+    return null;
+  }
 }
 
 // Lazy-initialized Gemini API client
@@ -791,11 +997,25 @@ app.post("/api/media/upload", requireAdmin, async (req, res) => {
       addRandomSuffix: false
     });
 
+    const actionLog = await appendCurrentAdminActionLog(req, {
+      action: "UPLOAD_MEDIA",
+      resourceType: "media",
+      resourceId: blob.pathname,
+      resourceLabel: safeFilename || "image",
+      details: {
+        folder: safeFolder,
+        pathname: blob.pathname,
+        contentType: blob.contentType,
+        sizeBytes: buffer.length
+      }
+    });
+
     return res.json({
       success: true,
       url: blob.url,
       pathname: blob.pathname,
-      contentType: blob.contentType
+      contentType: blob.contentType,
+      actionLog
     });
   } catch (error: any) {
     console.error("Blob upload error:", error);
@@ -1053,7 +1273,22 @@ app.post("/api/auth/reset-password", async (req, res) => {
 
     await writeAdminUsersToBlob(users);
 
-    res.json({
+    if (users[userIndex].username === "admin") {
+      const db = await getDBState();
+      if (db) {
+        db.adminSettings = {
+          ...(db.adminSettings || {}),
+          passwordSalt: newHash.passwordSalt,
+          passwordHash: newHash.passwordHash,
+          isDefaultPassword: false,
+          lastLogin: new Date().toISOString(),
+          resetCode: null
+        };
+        await saveDBState(db);
+      }
+    }
+
+    return res.json({
       success: true,
       message: "Password reset successfully."
     });
@@ -1118,13 +1353,27 @@ app.post("/api/admin/sync-public-data", requireAdmin, async (req, res) => {
 
   await saveDBState(db);
 
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: "SYNC_PUBLIC_DATA",
+    resourceType: "public_content",
+    resourceId: PUBLIC_DATA_BLOB_PATH,
+    resourceLabel: "Public website data",
+    details: {
+      blobPath: PUBLIC_DATA_BLOB_PATH,
+      products: Array.isArray(db.products) ? db.products.length : 0,
+      services: Array.isArray(db.services) ? db.services.length : 0,
+      hasSiteContent: Boolean(db.siteContent)
+    }
+  });
+
   return res.json({
     success: true,
     message: "Public website data synced to Vercel Blob.",
     blobPath: PUBLIC_DATA_BLOB_PATH,
     products: Array.isArray(db.products) ? db.products.length : 0,
     services: Array.isArray(db.services) ? db.services.length : 0,
-    hasSiteContent: Boolean(db.siteContent)
+    hasSiteContent: Boolean(db.siteContent),
+    actionLog
   });
 });
 
@@ -1177,10 +1426,34 @@ app.put("/api/auth/update-email", requireAdmin, async (req, res) => {
 
     await writeAdminUsersToBlob(updatedUsers);
 
-    res.json({
+    if (currentUser.username === "admin") {
+      const db = await getDBState();
+      if (db) {
+        db.adminSettings = {
+          ...(db.adminSettings || {}),
+          adminEmail: cleanEmail
+        };
+        await saveDBState(db);
+      }
+    }
+
+    const actionLog = await appendCurrentAdminActionLog(req, {
+      action: "UPDATE_OWN_EMAIL",
+      resourceType: "admin_user",
+      resourceId: currentUser.username,
+      resourceLabel: currentUser.displayName,
+      details: {
+        username: currentUser.username,
+        previousEmail: currentUser.email,
+        newEmail: cleanEmail
+      }
+    });
+
+    return res.json({
       success: true,
       email: cleanEmail,
-      message: "Registered account email updated successfully."
+      message: "Registered account email updated successfully.",
+      actionLog
     });
   } catch (error: any) {
     console.error("Update email failed:", error);
@@ -1214,9 +1487,34 @@ app.put("/api/auth/update-password", requireAdmin, async (req, res) => {
 
     await writeAdminUsersToBlob(updatedUsers);
 
-    res.json({
+    if (currentUser.username === "admin") {
+      const db = await getDBState();
+      if (db) {
+        db.adminSettings = {
+          ...(db.adminSettings || {}),
+          passwordSalt: newHash.passwordSalt,
+          passwordHash: newHash.passwordHash,
+          isDefaultPassword: false,
+          lastLogin: new Date().toISOString()
+        };
+        await saveDBState(db);
+      }
+    }
+
+    const actionLog = await appendCurrentAdminActionLog(req, {
+      action: "UPDATE_OWN_PASSWORD",
+      resourceType: "admin_user",
+      resourceId: currentUser.username,
+      resourceLabel: currentUser.displayName,
+      details: {
+        username: currentUser.username
+      }
+    });
+
+    return res.json({
       success: true,
-      message: "Your password was updated successfully."
+      message: "Your password was updated successfully.",
+      actionLog
     });
   } catch (error: any) {
     console.error("Update password failed:", error);
@@ -1273,7 +1571,7 @@ app.post("/api/admin/users", requireAdmin, requireOwner, async (req, res) => {
 
     const newUser: AdminUser = {
       username: cleanUsername,
-      displayName: displayName || cleanUsername,
+      displayName: displayName ? String(displayName).trim() : cleanUsername,
       email: String(email).trim(),
       role: cleanRole,
       passwordSalt: hash.passwordSalt,
@@ -1289,29 +1587,51 @@ app.post("/api/admin/users", requireAdmin, requireOwner, async (req, res) => {
 
     await writeAdminUsersToBlob(users);
 
-
     const currentUser = (req as any).adminUser as AdminUser | undefined;
 
-const inviteEmailResult = await sendAdminInviteEmail(newUser.email, {
-  username: newUser.username,
-  displayName: newUser.displayName,
-  role: newUser.role,
-  createdBy: currentUser?.username
-});
+    let userLogFile: any = null;
 
-    res.status(201).json({
-  success: true,
-  user: publicAdminUser(newUser),
-  inviteEmail: {
-    success: inviteEmailResult.success,
-    realSent: inviteEmailResult.realSent,
-    error: inviteEmailResult.error || ""
-  }
-});
+    try {
+      userLogFile = await createAdminUserLogFile(newUser, currentUser);
+    } catch (logError: any) {
+      console.error("User was created, but log file creation failed:", logError?.message || logError);
+    }
+
+    const ownerActionLog = await appendCurrentAdminActionLog(req, {
+      action: "CREATE_ADMIN_USER",
+      resourceType: "admin_user",
+      resourceId: newUser.username,
+      resourceLabel: `${newUser.displayName} (${newUser.role})`,
+      details: {
+        createdUsername: newUser.username,
+        createdEmail: newUser.email,
+        createdRole: newUser.role,
+        userLogFile
+      }
+    });
+
+    const inviteEmailResult = await sendAdminInviteEmail(newUser.email, {
+      username: newUser.username,
+      displayName: newUser.displayName,
+      role: newUser.role,
+      createdBy: currentUser?.username
+    });
+
+    return res.status(201).json({
+      success: true,
+      user: publicAdminUser(newUser),
+      userLogFile,
+      ownerActionLog,
+      inviteEmail: {
+        success: inviteEmailResult.success,
+        realSent: inviteEmailResult.realSent,
+        error: inviteEmailResult.error || ""
+      }
+    });
   } catch (error: any) {
     console.error("Create admin user failed:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: error?.message || "Failed to create admin user."
     });
   }
@@ -1330,6 +1650,7 @@ app.put("/api/admin/users/:username", requireAdmin, requireOwner, async (req, re
     }
 
     const currentUser = (req as any).adminUser as AdminUser;
+    const previousUser = { ...users[userIndex] };
 
     if (targetUsername === currentUser.username && isActive === false) {
       return res.status(400).json({ error: "You cannot deactivate your own account." });
@@ -1337,6 +1658,10 @@ app.put("/api/admin/users/:username", requireAdmin, requireOwner, async (req, re
 
     const cleanRole: AdminRole | undefined =
       role === "owner" || role === "admin" || role === "editor" ? role : undefined;
+
+    if (targetUsername === currentUser.username && cleanRole && cleanRole !== "owner") {
+      return res.status(400).json({ error: "You cannot remove owner access from your own account." });
+    }
 
     if (email) {
       const duplicate = users.find(
@@ -1350,6 +1675,26 @@ app.put("/api/admin/users/:username", requireAdmin, requireOwner, async (req, re
       }
     }
 
+    if (previousUser.role === "owner" && cleanRole && cleanRole !== "owner") {
+      const otherActiveOwners = users.filter(
+        (user) => user.username !== targetUsername && user.role === "owner" && user.isActive
+      );
+
+      if (otherActiveOwners.length === 0) {
+        return res.status(400).json({ error: "At least one active owner account is required." });
+      }
+    }
+
+    if (typeof isActive === "boolean" && isActive === false && previousUser.role === "owner") {
+      const otherActiveOwners = users.filter(
+        (user) => user.username !== targetUsername && user.role === "owner" && user.isActive
+      );
+
+      if (otherActiveOwners.length === 0) {
+        return res.status(400).json({ error: "At least one active owner account is required." });
+      }
+    }
+
     users[userIndex] = {
       ...users[userIndex],
       displayName: displayName !== undefined ? String(displayName).trim() : users[userIndex].displayName,
@@ -1360,15 +1705,38 @@ app.put("/api/admin/users/:username", requireAdmin, requireOwner, async (req, re
 
     await writeAdminUsersToBlob(users);
 
-    res.json({
+    const actionLog = await appendCurrentAdminActionLog(req, {
+      action: "UPDATE_ADMIN_USER",
+      resourceType: "admin_user",
+      resourceId: users[userIndex].username,
+      resourceLabel: `${users[userIndex].displayName} (${users[userIndex].role})`,
+      details: {
+        username: users[userIndex].username,
+        before: {
+          displayName: previousUser.displayName,
+          email: previousUser.email,
+          role: previousUser.role,
+          isActive: previousUser.isActive
+        },
+        after: {
+          displayName: users[userIndex].displayName,
+          email: users[userIndex].email,
+          role: users[userIndex].role,
+          isActive: users[userIndex].isActive
+        }
+      }
+    });
+
+    return res.json({
       success: true,
       user: publicAdminUser(users[userIndex]),
-      users: users.map(publicAdminUser)
+      users: users.map(publicAdminUser),
+      actionLog
     });
   } catch (error: any) {
     console.error("Update admin user failed:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: error?.message || "Failed to update admin user."
     });
   }
@@ -1401,15 +1769,27 @@ app.put("/api/admin/users/:username/password", requireAdmin, requireOwner, async
 
     await writeAdminUsersToBlob(users);
 
-    res.json({
+    const actionLog = await appendCurrentAdminActionLog(req, {
+      action: "RESET_ADMIN_USER_PASSWORD",
+      resourceType: "admin_user",
+      resourceId: users[userIndex].username,
+      resourceLabel: users[userIndex].displayName,
+      details: {
+        username: users[userIndex].username,
+        role: users[userIndex].role
+      }
+    });
+
+    return res.json({
       success: true,
       message: "Admin user password updated.",
-      user: publicAdminUser(users[userIndex])
+      user: publicAdminUser(users[userIndex]),
+      actionLog
     });
   } catch (error: any) {
     console.error("Update admin user password failed:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: error?.message || "Failed to update admin user password."
     });
   }
@@ -1439,21 +1819,65 @@ app.delete("/api/admin/users/:username", requireAdmin, requireOwner, async (req,
 
     await writeAdminUsersToBlob(remainingUsers);
 
-    res.json({
+    const actionLog = await appendCurrentAdminActionLog(req, {
+      action: "DELETE_ADMIN_USER",
+      resourceType: "admin_user",
+      resourceId: userToDelete.username,
+      resourceLabel: `${userToDelete.displayName} (${userToDelete.role})`,
+      details: {
+        username: userToDelete.username,
+        email: userToDelete.email,
+        role: userToDelete.role
+      }
+    });
+
+    return res.json({
       success: true,
       message: "Admin user deleted.",
-      users: remainingUsers.map(publicAdminUser)
+      users: remainingUsers.map(publicAdminUser),
+      actionLog
     });
   } catch (error: any) {
     console.error("Delete admin user failed:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: error?.message || "Failed to delete admin user."
     });
   }
 });
 
-// Update text copy sections
+app.get("/api/admin/users/:username/log", requireAdmin, requireOwner, async (req, res) => {
+  try {
+    const username = safeLogUsername(req.params.username);
+    const userLogPath = `${ADMIN_ACTION_LOG_USER_FOLDER}/${username}.json`;
+
+    const result = await get(userLogPath, { access: "public" });
+
+    if (!result || result.statusCode !== 200 || !result.stream) {
+      return res.status(404).json({
+        success: false,
+        error: "User log file not found.",
+        path: userLogPath
+      });
+    }
+
+    const text = await new Response(result.stream).text();
+    const logs = JSON.parse(text);
+
+    return res.json({
+      success: true,
+      path: userLogPath,
+      logs: Array.isArray(logs) ? logs : []
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error?.message || "Failed to read user log file."
+    });
+  }
+});
+
+// Update text copy sections// Update text copy sections
 // Update text copy sections
 app.put("/api/content/text", requireAdmin, async (req, res) => {
   const { section, data } = req.body;
@@ -1514,7 +1938,19 @@ app.put("/api/content/text", requireAdmin, async (req, res) => {
   }
 
   await saveDBState(db);
-  res.json({ success: true, content: db.siteContent });
+
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: "UPDATE_CONTENT_SECTION",
+    resourceType: "site_content",
+    resourceId: section,
+    resourceLabel: section,
+    details: {
+      section,
+      changedKeys: typeof data === "object" && data !== null ? Object.keys(data) : []
+    }
+  });
+
+  res.json({ success: true, content: db.siteContent, actionLog });
 });
 
 // Add a product catalog item
@@ -1542,7 +1978,19 @@ app.post("/api/products", requireAdmin, async (req, res) => {
   db.products.push(newProduct);
   await saveDBState(db);
 
-  res.status(201).json({ success: true, product: newProduct });
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: "CREATE_PRODUCT",
+    resourceType: "product",
+    resourceId: newProduct.id,
+    resourceLabel: newProduct.name,
+    details: {
+      name: newProduct.name,
+      category: newProduct.category,
+      status: newProduct.status
+    }
+  });
+
+  res.status(201).json({ success: true, product: newProduct, actionLog });
 });
 
 // Update a product catalog item
@@ -1565,7 +2013,19 @@ app.put("/api/products/:id", requireAdmin, async (req, res) => {
   };
 
   await saveDBState(db);
-  res.json({ success: true, product: db.products[index] });
+
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: "UPDATE_PRODUCT",
+    resourceType: "product",
+    resourceId: id,
+    resourceLabel: db.products[index].name,
+    details: {
+      productId: id,
+      changedKeys: Object.keys(updateData || {})
+    }
+  });
+
+  res.json({ success: true, product: db.products[index], actionLog });
 });
 
 // Delete a product catalog item
@@ -1575,6 +2035,7 @@ app.delete("/api/products/:id", requireAdmin, async (req, res) => {
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.products = db.products || [];
+  const deletedProduct = db.products.find((p: any) => p.id === id);
   const initialLength = db.products.length;
   db.products = db.products.filter((p: any) => p.id !== id);
 
@@ -1583,7 +2044,19 @@ app.delete("/api/products/:id", requireAdmin, async (req, res) => {
   }
 
   await saveDBState(db);
-  res.json({ success: true, message: "Product deleted from catalog." });
+
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: "DELETE_PRODUCT",
+    resourceType: "product",
+    resourceId: id,
+    resourceLabel: deletedProduct?.name || id,
+    details: {
+      productId: id,
+      name: deletedProduct?.name || ""
+    }
+  });
+
+  res.json({ success: true, message: "Product deleted from catalog.", actionLog });
 });
 
 // Add a consultation service item
@@ -1606,7 +2079,19 @@ app.post("/api/services", requireAdmin, async (req, res) => {
   db.services.push(newService);
   await saveDBState(db);
 
-  res.status(201).json({ success: true, service: newService });
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: "CREATE_SERVICE",
+    resourceType: "service",
+    resourceId: newService.id,
+    resourceLabel: newService.name,
+    details: {
+      name: newService.name,
+      price: newService.price,
+      duration: newService.duration
+    }
+  });
+
+  res.status(201).json({ success: true, service: newService, actionLog });
 });
 
 // Update a consultation service item
@@ -1629,7 +2114,19 @@ app.put("/api/services/:id", requireAdmin, async (req, res) => {
   };
 
   await saveDBState(db);
-  res.json({ success: true, service: db.services[index] });
+
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: "UPDATE_SERVICE",
+    resourceType: "service",
+    resourceId: id,
+    resourceLabel: db.services[index].name,
+    details: {
+      serviceId: id,
+      changedKeys: Object.keys(updateData || {})
+    }
+  });
+
+  res.json({ success: true, service: db.services[index], actionLog });
 });
 
 // Delete a consultation service item
@@ -1639,6 +2136,7 @@ app.delete("/api/services/:id", requireAdmin, async (req, res) => {
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.services = db.services || [];
+  const deletedService = db.services.find((s: any) => s.id === id);
   const initialLength = db.services.length;
   db.services = db.services.filter((s: any) => s.id !== id);
 
@@ -1647,7 +2145,19 @@ app.delete("/api/services/:id", requireAdmin, async (req, res) => {
   }
 
   await saveDBState(db);
-  res.json({ success: true, message: "Consultation package deleted." });
+
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: "DELETE_SERVICE",
+    resourceType: "service",
+    resourceId: id,
+    resourceLabel: deletedService?.name || id,
+    details: {
+      serviceId: id,
+      name: deletedService?.name || ""
+    }
+  });
+
+  res.json({ success: true, message: "Consultation package deleted.", actionLog });
 });
 
 // Admin list all contact forms
@@ -1671,7 +2181,20 @@ app.put("/api/messages/:id/read", requireAdmin, async  (req, res) => {
 
   msg.isRead = !msg.isRead;
   await saveDBState(db);
-  res.json({ success: true, message: msg });
+
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: msg.isRead ? "MARK_MESSAGE_READ" : "MARK_MESSAGE_UNREAD",
+    resourceType: "contact_message",
+    resourceId: id,
+    resourceLabel: msg.subject || id,
+    details: {
+      messageId: id,
+      senderEmail: msg.senderEmail || "",
+      isRead: msg.isRead
+    }
+  });
+
+  res.json({ success: true, message: msg, actionLog });
 });
 
 // Admin delete contact message
@@ -1681,10 +2204,23 @@ app.delete("/api/messages/:id", requireAdmin, async (req, res) => {
   if (!db) return res.status(500).json({ error: "Database state inaccessible." });
 
   db.messages = db.messages || [];
+  const deletedMessage = db.messages.find((m: any) => m.id === id);
   db.messages = db.messages.filter((m: any) => m.id !== id);
   await saveDBState(db);
 
-  res.json({ success: true, message: "Contact lead successfully removed." });
+  const actionLog = await appendCurrentAdminActionLog(req, {
+    action: "DELETE_MESSAGE",
+    resourceType: "contact_message",
+    resourceId: id,
+    resourceLabel: deletedMessage?.subject || id,
+    details: {
+      messageId: id,
+      senderEmail: deletedMessage?.senderEmail || "",
+      subject: deletedMessage?.subject || ""
+    }
+  });
+
+  res.json({ success: true, message: "Contact lead successfully removed.", actionLog });
 });
 
 // Biotech Agro AI Copywriter Assistant powered by Gemini 3.5 Flash
