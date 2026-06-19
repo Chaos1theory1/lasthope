@@ -475,7 +475,7 @@ async function sendAdminInviteEmail(
       return val.replace(/^["']|["']$/g, "").trim();
     };
 
-    const senderEmail = cleanEnvStr(process.env.SMTP_USER || "biotechagro.digital@gmail.com");
+    const senderEmail = cleanEnvStr(process.env.SMTP_USER || "contact@biotech-agro.com");
     const senderName = "Biotech Agro Administration";
 
     const safeDisplayName = invite.displayName || invite.username;
