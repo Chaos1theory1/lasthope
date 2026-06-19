@@ -832,7 +832,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const [messageError, setMessageError] = useState<string>("");
 
   // Admin authentication states
-  const [adminUsername, setAdminUsername] = useState<string>(ADMIN_EMAIL);
+  const [adminUsername, setAdminUsername] = useState<string>("");
   const [adminPassword, setAdminPassword] = useState<string>("");
   const [authToken, setAuthToken] = useState<string>(() => localStorage.getItem("myco_admin_token") || "");
   const [authMode, setAuthMode] = useState<"legacy" | "supabase" | null>(() => localStorage.getItem("myco_admin_token") ? "legacy" : null);
@@ -1070,7 +1070,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       });
       if (response.ok) {
         const data = await response.json();
-        setAdminSecEmail(data.adminEmail || "biotechagro.digital@gmail.com");
+        setAdminSecEmail("");
         setIsSecDefaultPassword(data.isDefaultPassword);
         setSecLastLogin(data.lastLogin || "");
       }
@@ -1360,7 +1360,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       setCurrentAdminUser(buildSupabaseAdminUser(user));
       setAdminSecEmail(ADMIN_EMAIL);
       setAdminPassword("");
-      setAdminUsername(ADMIN_EMAIL);
+      setAdminUsername("");
       setLoginError("");
       setMagicLinkNotice("");
 
@@ -1404,7 +1404,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       setCurrentAdminUser(buildSupabaseAdminUser(user));
       setAdminSecEmail(ADMIN_EMAIL);
       setAdminPassword("");
-      setAdminUsername(ADMIN_EMAIL);
+      setAdminUsername("");
       setLoginError("");
       setMagicLinkNotice("");
 
@@ -1482,12 +1482,12 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       const email = adminUsername.trim().toLowerCase();
 
       if (email !== ADMIN_EMAIL) {
-        setLoginError(`Only ${ADMIN_EMAIL} is authorized for admin access.`);
+        setLoginError("This email is not authorized for admin access.");
         return;
       }
 
       const { error } = await supabase.auth.signInWithOtp({
-        email: ADMIN_EMAIL,
+        email,
         options: {
           emailRedirectTo: `${window.location.origin}${window.location.pathname}?admin=1`
         }
@@ -1498,7 +1498,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         return;
       }
 
-      setMagicLinkNotice("Magic login link sent. Open the BiotechAgro email inbox and click the link.");
+      setMagicLinkNotice("If this email is authorized, a secure login link has been sent. Please check the inbox and return to this admin panel.");
     } catch (err: any) {
       setLoginError(err?.message || "Failed to send Supabase magic link.");
     } finally {
@@ -2824,7 +2824,7 @@ const handleUploadHeroBackground = async (file: File) => {
                 <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-stone-300 rounded-full blur-3xl animate-pulse-slow" />
               </div>
 
-              <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
+              <div className="max-w-5xl mx-auto text-center relative z-10 space-y-7">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100/80 border border-emerald-200 text-emerald-800 rounded-full text-[11px] font-mono font-bold tracking-widest uppercase">
                   <Sparkles className="w-3 h-3 text-emerald-700 animate-spin-slow" />
                   <EditableText
@@ -2843,7 +2843,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   />
                 </h1>
 
-                <p className="text-stone-600 text-lg sm:text-xl font-light leading-relaxed max-w-2xl mx-auto">
+                <p className="text-stone-600 text-lg sm:text-xl lg:text-[1.35rem] font-light leading-[1.75] max-w-4xl mx-auto px-4 sm:px-6">
                   <EditableText
                     value={getLocalizedValue(siteContent.hero, "subtitle", currentLanguage, "Certified pure strain inoculants & eco-packaging substrates grown locally in Tunisia under elite aseptic standards.", "hero")}
                     onSave={(val) => handleUpdateTextSection("hero", { ...(siteContent?.hero || {}), subtitle: val, [`subtitle_${currentLanguage}`]: val }, false)}
@@ -5481,8 +5481,8 @@ const handleUploadHeroBackground = async (file: File) => {
                       <div className="p-3.5 bg-stone-100 text-stone-700 rounded-2xl w-fit mx-auto border border-stone-200">
                         <Lock className="w-6 h-6" />
                       </div>
-                      <h1 className="font-display text-2xl font-bold text-stone-900">Lab Administration Log In</h1>
-                      <p className="text-xs text-stone-400">Use the authorized admin email to manage media and content.</p>
+                      <h1 className="font-display text-2xl font-bold text-stone-900">Admin Access</h1>
+                      <p className="text-xs text-stone-400 max-w-xs mx-auto leading-relaxed">Enter your admin email to receive a secure login link.</p>
                     </div>
 
                     <form onSubmit={handleLoginSubmit} className="space-y-4">
@@ -5508,12 +5508,13 @@ const handleUploadHeroBackground = async (file: File) => {
                           value={adminUsername}
                           onChange={(e) => setAdminUsername(e.target.value)}
                           className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-emerald-700 transition-all font-light"
-                          placeholder="Enter your Email"
+                          placeholder="Enter your admin email"
+                          autoComplete="off"
                         />
                       </div>
 
                       <div className="rounded-xl bg-stone-50 border border-stone-200 p-3 text-[11px] leading-relaxed text-stone-500">
-                        Login Link will be sent to admin Email. After clicking the link, return to this admin panel.
+                        If the email is authorized, a secure login link will be sent. After opening the link, return to this admin panel.
                       </div>
 
                       <button
@@ -5527,7 +5528,7 @@ const handleUploadHeroBackground = async (file: File) => {
                             Let the magic happen...
                           </>
                         ) : (
-                          "Send Supabase Magic Link"
+                          "Send Login Link"
                         )}
                       </button>
                     </form>
@@ -6876,7 +6877,7 @@ const handleUploadHeroBackground = async (file: File) => {
                                 value={adminSecEmail}
                                 onChange={(e) => setAdminSecEmail(e.target.value)}
                                 className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3 py-2 text-xs font-sans text-stone-800 focus:border-emerald-700 focus:outline-hidden"
-                                placeholder="biotechagro.digital@gmail.com"
+                                placeholder="Enter security email"
                               />
                             </div>
                             
