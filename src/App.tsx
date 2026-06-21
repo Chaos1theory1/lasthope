@@ -3932,11 +3932,11 @@ const handleUploadHeroBackground = async (file: File) => {
               {/* Left Panel: Example Photo & Category Details */}
               <div className="md:col-span-5 space-y-4">
                 <div className="bg-stone-50 border border-stone-250 p-4 rounded-2xl space-y-4 shadow-sm">
-                  <div className="aspect-square bg-stone-100 rounded-xl overflow-hidden relative">
+                  <div className="aspect-square bg-white rounded-xl overflow-hidden relative flex items-center justify-center p-3">
                     <img
                       src={qrEditMode ? (qrForm.image || "") : selectedQrProduct.image}
                       alt={selectedQrProduct.name}
-                      className="w-full h-full object-cover"
+                      className="max-w-full max-h-full object-contain"
                       referrerPolicy="no-referrer"
                     />
                     <div className="absolute top-3 right-3">
@@ -4821,12 +4821,12 @@ const handleUploadHeroBackground = async (file: File) => {
                     >
                       <div>
                         {/* Product Photo */}
-                        <div className="h-48 bg-stone-100 relative overflow-hidden">
+                        <div className="h-56 bg-white relative overflow-hidden flex items-center justify-center p-3">
                           <img
                             src={product.image}
                             alt={getProductLocalizedValue(product, "name", currentLanguage, product.name)}
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            className="max-w-full max-h-full object-contain group-hover:scale-[1.02] transition-transform duration-500"
                           />
                           <div className="absolute top-3 right-3">
                             <span
@@ -5020,18 +5020,21 @@ const handleUploadHeroBackground = async (file: File) => {
                     <X className="w-4 h-4" />
                   </button>
 
-                  <div className="h-64 relative bg-stone-100">
-                    <img
-                      src={selectedProductDetails.image}
-                      alt={getProductLocalizedValue(selectedProductDetails, "name", currentLanguage, selectedProductDetails.name)}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute bottom-4 left-4 p-3 bg-stone-950/80 backdrop-blur-xs rounded-xl border border-stone-800 text-stone-100">
-                      <span className="text-[9px] font-mono tracking-widest text-emerald-300 block uppercase">
+                  <div className="relative bg-white border-b border-stone-100">
+                    <div className="h-[320px] sm:h-[390px] flex items-center justify-center p-5">
+                      <img
+                        src={selectedProductDetails.image}
+                        alt={getProductLocalizedValue(selectedProductDetails, "name", currentLanguage, selectedProductDetails.name)}
+                        referrerPolicy="no-referrer"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+
+                    <div className="px-6 pb-5 pt-1 text-start">
+                      <span className="text-[9px] font-mono tracking-widest text-emerald-700 block uppercase">
                         {selectedProductDetails.category}
                       </span>
-                      <h3 className="font-display font-medium text-lg leading-tight">
+                      <h3 className="font-display font-medium text-xl leading-tight text-stone-900 mt-1">
                         {getProductLocalizedValue(selectedProductDetails, "name", currentLanguage, selectedProductDetails.name)}
                       </h3>
                     </div>
