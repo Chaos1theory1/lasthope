@@ -44,7 +44,14 @@ import GoogleDriveVault from "./components/GoogleDriveVault";
 import { Product, Service, ContactMessage, SiteContent, DatabaseState, ProductCategory, ProductStatus, TeamMember, Certification, FeatureItem, CatalogSection, GalleryImage } from "./types";
 import { i18n } from "./translations";
 
-const ADMIN_EMAIL = "biotechagro.digital@gmail.com";
+const ADMIN_EMAILS = [
+  "biotechagro.digital@gmail.com",
+  "rhouma.alaaa@gmail.com",
+  "baslyaligmail.com"
+];
+
+const isAuthorizedAdminEmail = (email?: string | null) =>
+  !!email && ADMIN_EMAILS.includes(email.toLowerCase());
 const SUPABASE_MEDIA_BUCKET = "media";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -1345,7 +1352,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
       if (!isMounted || !user) return;
 
-      if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+      if (!isAuthorizedAdminEmail(user.email)) {
         await supabase.auth.signOut();
         setLoginError("This Supabase account is not authorized as admin.");
         return;
@@ -1389,7 +1396,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         return;
       }
 
-      if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+      if (!isAuthorizedAdminEmail(user.email)) {
         supabase.auth.signOut();
         setLoginError("This Supabase account is not authorized as admin.");
         return;
@@ -1481,7 +1488,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
       const email = adminUsername.trim().toLowerCase();
 
-      if (email !== ADMIN_EMAIL) {
+      if (!isAuthorizedAdminEmail(email)) {
         setLoginError("This email is not authorized for admin access.");
         return;
       }
@@ -1914,7 +1921,7 @@ const uploadMedia = async (
     throw new Error("Please log in with the Supabase admin magic link before uploading images.");
   }
 
-  if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+  if (!isAuthorizedAdminEmail(user.email)) {
     throw new Error("This account is not authorized to upload media.");
   }
 
