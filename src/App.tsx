@@ -44,13 +44,24 @@ import GoogleDriveVault from "./components/GoogleDriveVault";
 import { Product, Service, ContactMessage, SiteContent, DatabaseState, ProductCategory, ProductStatus, TeamMember, Certification, FeatureItem, CatalogSection, GalleryImage } from "./types";
 import { i18n } from "./translations";
 
-const ADMIN_EMAIL = "biotechagro.digital@gmail.com";
+const FALLBACK_ADMIN_EMAIL = "biotechagro.digital@gmail.com";
 const SUPABASE_MEDIA_BUCKET = "media";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", supabaseAnonKey || "placeholder-anon-key");
+
+async function isCurrentSupabaseAdmin(): Promise<boolean> {
+  const { data, error } = await supabase.rpc("is_app_admin");
+
+  if (error) {
+    console.error("Supabase admin authorization check failed:", error);
+    return false;
+  }
+
+  return data === true;
+}
 
 
 
@@ -998,7 +1009,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const getLegacyOwnerFallback = (username = "admin"): AdminPanelUser => ({
     username,
     displayName: username === "admin" ? "Main Admin" : username,
-    email: adminSecEmail || ADMIN_EMAIL,
+    email: adminSecEmail || FALLBACK_ADMIN_EMAIL,
     role: username === "admin" ? "owner" : "admin",
     isActive: true,
     createdAt: "",
@@ -1008,7 +1019,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const buildSupabaseAdminUser = (user: User): AdminPanelUser => ({
     username: "admin",
     displayName: "BiotechAgro Admin",
-    email: user.email || ADMIN_EMAIL,
+    email: user.email || FALLBACK_ADMIN_EMAIL,
     role: "owner",
     isActive: true,
     createdAt: user.created_at || "",
@@ -1345,9 +1356,11 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
       if (!isMounted || !user) return;
 
-      if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+      const isAuthorizedAdmin = await isCurrentSupabaseAdmin();
+
+      if (!isAuthorizedAdmin) {
         await supabase.auth.signOut();
-        setLoginError("This Supabase account is not authorized as admin.");
+        setLoginError("This email is not authorized as admin.");
         return;
       }
 
@@ -1358,7 +1371,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       setAuthToken(token);
       setIsAdminLoggedIn(true);
       setCurrentAdminUser(buildSupabaseAdminUser(user));
-      setAdminSecEmail(ADMIN_EMAIL);
+      setAdminSecEmail(user.email || FALLBACK_ADMIN_EMAIL);
       setAdminPassword("");
       setAdminUsername("");
       setLoginError("");
@@ -1373,7 +1386,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
     applySupabaseSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const user = session?.user || null;
 
       if (!user) {
@@ -1389,9 +1402,11 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         return;
       }
 
-      if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
-        supabase.auth.signOut();
-        setLoginError("This Supabase account is not authorized as admin.");
+      const isAuthorizedAdmin = await isCurrentSupabaseAdmin();
+
+      if (!isAuthorizedAdmin) {
+        await supabase.auth.signOut();
+        setLoginError("This email is not authorized as admin.");
         return;
       }
 
@@ -1402,7 +1417,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       setAuthToken(token);
       setIsAdminLoggedIn(true);
       setCurrentAdminUser(buildSupabaseAdminUser(user));
-      setAdminSecEmail(ADMIN_EMAIL);
+      setAdminSecEmail(user.email || FALLBACK_ADMIN_EMAIL);
       setAdminPassword("");
       setAdminUsername("");
       setLoginError("");
@@ -1481,8 +1496,8 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
       const email = adminUsername.trim().toLowerCase();
 
-      if (email !== ADMIN_EMAIL) {
-        setLoginError("This email is not authorized for admin access.");
+      if (!email) {
+        setLoginError("Please enter your admin email.");
         return;
       }
 
@@ -1914,7 +1929,9 @@ const uploadMedia = async (
     throw new Error("Please log in with the Supabase admin magic link before uploading images.");
   }
 
-  if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+  const isAuthorizedAdmin = await isCurrentSupabaseAdmin();
+
+  if (!isAuthorizedAdmin) {
     throw new Error("This account is not authorized to upload media.");
   }
 
