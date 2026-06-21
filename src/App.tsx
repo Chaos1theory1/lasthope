@@ -1045,7 +1045,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         loadAdminSettings(token);
 
         if (verifiedUser.role === "owner") {
-          loadAdminUsers(token);
+          //loadAdminUsers(token);
         }
       } else {
         localStorage.removeItem("myco_admin_token");
@@ -1380,7 +1380,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       if (token) {
         loadAdminInbox(token);
         loadAdminSettings(token);
-        loadAdminUsers(token);
+        //loadAdminUsers(token);
       }
     };
 
@@ -1426,7 +1426,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       if (token) {
         loadAdminInbox(token);
         loadAdminSettings(token);
-        loadAdminUsers(token);
+       // loadAdminUsers(token);
       }
     });
 
@@ -5722,7 +5722,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   </div>
                 </div>
 
-                {renderAdminUsersPanel()}
+                {false && renderAdminUsersPanel()}
 
                 {/* MAIN GRID: Content management area */}
                 <div className="w-full space-y-12">
