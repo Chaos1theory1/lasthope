@@ -404,20 +404,20 @@ async function sendResetCodeEmail(toEmail: string, code: string): Promise<{ succ
     };
 
     const senderEmail = cleanEnvStr(process.env.SMTP_USER || "biotechagro.digital@gmail.com");
-    const senderName = "🔑 Biotech Agro Verification";
+    const senderName = "🔑 Mycelium Tech Digital Verification";
 
     const mailOptions = {
       from: `"${senderName}" <${senderEmail}>`,
       to: toEmail,
-      subject: "🛡️ Administrative Security Code - Biotech-Agro Verification",
-      text: `Hello,\n\nA request was made to update the administrative credentials of Biotech-Agro Lab portal.\n\nYour secure 6-digit verification code is: ${code}\n\nThis verification sequence is valid for 10 minutes. If you did not initiate this, please secure your administrative console instantly.\n\nPortal Security Operations\nBiotech-Agro (biotech-agro.com)`,
+      subject: "🛡️ Administrative Security Code - Mycelium Tech Verification",
+      text: `Hello,\n\nA request was made to update the administrative credentials of Mycelium Tech portal.\n\nYour secure 6-digit verification code is: ${code}\n\nThis verification sequence is valid for 10 minutes. If you did not initiate this, please secure your administrative console instantly.\n\nPortal Security Operations\nMycelium Tech (myceliumtech.com)`,
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; padding: 35px 25px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #fafaf9; color: #1c1917;">
           <div style="text-align: center; margin-bottom: 25px;">
             <div style="display: inline-block; padding: 14px; background-color: #f0fdf4; border-radius: 50%; border: 1px solid #bbf7d0; margin-bottom: 12px;">
               <span style="font-size: 28px; line-height: 1;">🔬</span>
             </div>
-            <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: #1c1917; letter-spacing: -0.035em;">Biotech-Agro Lab</h2>
+            <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: #1c1917; letter-spacing: -0.035em;">Mycelium Tech Lab</h2>
             <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #15803d; font-weight: 700; margin: 4px 0 0 0;">Secure Password Reset Services</p>
           </div>
           
@@ -436,7 +436,7 @@ async function sendResetCodeEmail(toEmail: string, code: string): Promise<{ succ
           </div>
 
           <div style="border-top: 1px solid #e7e5e4; padding-top: 18px; text-align: center; font-size: 11px; color: #78716c; line-height: 1.5;">
-            <p style="margin: 0;">This transmission was dispatched to <strong>${toEmail}</strong> representing Biotech-Agro.</p>
+            <p style="margin: 0;">This transmission was dispatched to <strong>${toEmail}</strong> representing Mycelium Tech.</p>
             <p style="margin: 4px 0 0 0;">Admin Priority Routing: Gateway (smtp.gmail.com) • Cloud Security Infrastructure</p>
           </div>
         </div>
@@ -478,7 +478,7 @@ async function sendAdminInviteEmail(
     };
 
     const senderEmail = cleanEnvStr(process.env.SMTP_USER || "contact@biotech-agro.com");
-    const senderName = "Biotech Agro Administration";
+    const senderName = "Mycelium Tech Digital Administration";
 
     const safeDisplayName = invite.displayName || invite.username;
     const safeRole = invite.role.toUpperCase();
@@ -486,12 +486,12 @@ async function sendAdminInviteEmail(
     const mailOptions = {
       from: `"${senderName}" <${senderEmail}>`,
       to: toEmail,
-      subject: "Welcome to the Biotech Agro Admin Console",
+      subject: "Welcome to the Mycelium Tech Digital Admin Console",
       text: `Hello ${safeDisplayName},
 
-Welcome to Biotech Agro.
+Welcome to Mycelium Tech.
 
-An administrator account has been created for you on the Biotech Agro website console.
+An administrator account has been created for you on the Mycelium Tech website console.
 
 Account details:
 Username: ${invite.username}
@@ -504,14 +504,14 @@ Please contact the website administrator to receive your temporary password and 
 After your first login, we recommend changing your password from the admin console.
 
 Best regards,
-Biotech Agro Administration`,
+Mycelium Tech Digital Administration`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 30px; background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 18px; color: #1c1917;">
           <div style="text-align: center; margin-bottom: 24px;">
             <div style="display: inline-block; padding: 14px; background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 50%; font-size: 28px;">
               🔬
             </div>
-            <h2 style="margin: 12px 0 4px; font-size: 22px;">Welcome to Biotech Agro</h2>
+            <h2 style="margin: 12px 0 4px; font-size: 22px;">Welcome to Mycelium Tech Digital</h2>
             <p style="margin: 0; color: #047857; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">
               Website Admin Console Invitation
             </p>
@@ -520,7 +520,7 @@ Biotech Agro Administration`,
           <p style="font-size: 14px; line-height: 1.6;">Hello <strong>${safeDisplayName}</strong>,</p>
 
           <p style="font-size: 14px; line-height: 1.6;">
-            An administrator account has been created for you on the Biotech Agro website console.
+            An administrator account has been created for you on the Mycelium Tech Digital website console.
           </p>
 
           <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 14px; padding: 18px; margin: 20px 0;">
@@ -538,7 +538,7 @@ Biotech Agro Administration`,
           </p>
 
           <div style="border-top: 1px solid #e7e5e4; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #78716c; text-align: center;">
-            Biotech Agro Administration
+            Mycelium Tech Digital Administration
           </div>
         </div>
       `
@@ -575,21 +575,21 @@ async function sendContactInquiryEmail(adminEmail: string, inquiry: { senderName
     };
 
     const senderEmail = cleanEnvStr(process.env.SMTP_USER || "biotechagro.digital@gmail.com");
-    const senderName = "📬 Biotech Agro Inquiry";
+    const senderName = "📬 Mycelium Tech Digital Inquiry";
 
     const mailOptions = {
       from: `"${senderName}" <${senderEmail}>`,
       to: adminEmail,
       replyTo: inquiry.senderEmail,
-      subject: `📬 Biotech-Agro [New Contact Inquiry]: ${inquiry.subject}`,
-      text: `Hello Admin,\n\nYou have received a new contact inquiry through the Biotech Agro portal:\n\n---\nName: ${inquiry.senderName}\nEmail: ${inquiry.senderEmail}\nPhone: ${inquiry.senderPhone || "Not provided"}\nSubject: ${inquiry.subject}\n\nMessage:\n${inquiry.message}\n---\n\nReply directly to: ${inquiry.senderEmail}\n\nPortal Security Operations\nBiotech-Agro (biotech-agro.com)`,
+      subject: `📬 Mycelium Tech Digital[New Contact Inquiry]: ${inquiry.subject}`,
+      text: `Hello Admin,\n\nYou have received a new contact inquiry through the Mycelium Tech Digital portal:\n\n---\nName: ${inquiry.senderName}\nEmail: ${inquiry.senderEmail}\nPhone: ${inquiry.senderPhone || "Not provided"}\nSubject: ${inquiry.subject}\n\nMessage:\n${inquiry.message}\n---\n\nReply directly to: ${inquiry.senderEmail}\n\nPortal Security Operations\nMycelium Tech Digital (biotech-agro.com)`,
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; padding: 35px 25px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #fafaf9; color: #1c1917;">
           <div style="text-align: center; margin-bottom: 25px;">
             <div style="display: inline-block; padding: 14px; background-color: #f0fdf4; border-radius: 50%; border: 1px solid #bbf7d0; margin-bottom: 12px;">
               <span style="font-size: 28px; line-height: 1;">📬</span>
             </div>
-            <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: #1c1917; letter-spacing: -0.035em;">Biotech-Agro Lab</h2>
+            <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: #1c1917; letter-spacing: -0.035em;">Mycelium Tech Digital Lab</h2>
             <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #15803d; font-weight: 700; margin: 4px 0 0 0;">New Contact Form Submission</p>
           </div>
           
@@ -630,7 +630,7 @@ async function sendContactInquiryEmail(adminEmail: string, inquiry: { senderName
 
           <div style="border-top: 1px solid #e7e5e4; padding-top: 18px; text-align: center; font-size: 11px; color: #78716c; line-height: 1.5;">
             <p style="margin: 0;">This notification matches admin setting forwarding to <strong>${adminEmail}</strong>.</p>
-            <p style="margin: 4px 0 0 0;">Priority Routing: Biotech-Agro Lead System • Cloud Security Infrastructure</p>
+            <p style="margin: 4px 0 0 0;">Priority Routing: Mycelium Tech Digital Lead System • Cloud Security Infrastructure</p>
           </div>
         </div>
       `
@@ -713,7 +713,7 @@ async function getSupabaseAdminFromToken(token: string): Promise<AdminUser | nul
 
     return {
       username: "admin",
-      displayName: "BiotechAgro Admin",
+      displayName: "Mycelium Tech Digital Admin",
       email: user.email || ADMIN_EMAIL,
       role: "owner",
       passwordSalt: generated.passwordSalt,
@@ -911,7 +911,7 @@ app.post("/api/messages", async (req, res) => {
 
   // Stylized simulated or live console delivery card
   console.log(`\n=============================================================`);
-  console.log(`✉️  SECURE EMAIL DELIVERY SYSTEM (Biotech Agro Laboratory)`);
+  console.log(`✉️  SECURE EMAIL DELIVERY SYSTEM (Mycelium Tech Digital Laboratory)`);
   console.log(`-------------------------------------------------------------`);
   console.log(`To:       ${adminEmail}`);
   console.log(`From (Visitor): ${newMessage.senderName} <${newMessage.senderEmail}>`);
@@ -1827,7 +1827,7 @@ app.delete("/api/messages/:id", requireAdmin, async (req, res) => {
   res.json({ success: true, message: "Contact lead successfully removed." });
 });
 
-// Biotech Agro AI Copywriter Assistant powered by Gemini 3.5 Flash
+// Mycelium Tech Digital AI Copywriter Assistant powered by Gemini 3.5 Flash
 app.post("/api/assistant", requireAdmin, async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) {
@@ -1835,7 +1835,7 @@ app.post("/api/assistant", requireAdmin, async (req, res) => {
   }
 
   const systemInstruction = `You are an expert bio-engineering copywriter specializing in sustainable agriculture, circular bio-economy, organic farming, and mycelium biotechnology in Tunisia. 
-The user is managing their Biotech Agro website and needs your assistance drafting clear, professional copy. 
+The user is managing their Mycelium Tech Digital website and needs your assistance drafting clear, professional copy. 
 
 Fulfill their request in a highly academic yet commercially appealing and accessible tone. You can use French, English, or Tunisian terms where appropriate to resonate with local farmers. Keep the response clean and return ONLY the rewritten copy without conversational intro/outro.`;
 

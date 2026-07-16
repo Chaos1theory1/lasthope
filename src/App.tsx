@@ -203,7 +203,7 @@ hero_title: "زراعة الإمكانات اللامتناهية للأبواغ
 hero_subtitle: "نحن نقوم بتدوير المنتجات الثانوية الزراعية التونسية - مثل قشور الزيتون وحبوب القمح - إلى أبواغ فطرية ممتازة ومواد حيوية قابلة للتحلل. تمكين المزارعين الإقليميين ودفع الاقتصاد الدائري.",
 primaryCta: "اكتشف منتجاتنا",
 secondaryCta: "احجز استشارة",
-gallery_title: "داخل مختبر Biotech Agro",
+gallery_title: "داخل مختبر ميسليوم تك ديجيتال",
 gallery_subtitle: "نظرة مرئية على المختبر، إنتاج الميسيليوم، مراقبة الجودة والعمل الميداني",
     // About / Choose Section
     chooseTitle: "لماذا يختار المزارعون بيوتك أغرو",
@@ -267,14 +267,14 @@ gallery_subtitle: "نظرة مرئية على المختبر، إنتاج الم
 title: "Cultiver le potentiel infini du mycélium",
 subtitle: "Nous valorisons les co-produits agricoles tunisiens—comme les coques d'olives et les grains de blé—en blanc de semis de qualité supérieure et en biomatériaux compostables. Autonomiser les producteurs régionaux.",
 hero_title: "Cultiver le potentiel infini du mycélium",
-hero_subtitle: "Biotech Agro est une startup tunisienne innovante spécialisée dans la biotechnologie fongique, dédiée à la numérisation complète des processus de production, de suivi et de contrôle qualité des cultures fongiques. Nous intégrons des solutions numériques de pointe à chaque étape de la chaîne de valeur de la culture de champignons afin de garantir la performance, la traçabilité et la standardisation industrielle.",
+hero_subtitle: "Mycelium Tech Digital est une entreprise tunisienne innovante spécialisée dans la biotechnologie fongique, dédiée à la numérisation complète des processus de production, de suivi et de contrôle qualité des cultures fongiques. Nous intégrons des solutions numériques de pointe à chaque étape de la chaîne de valeur de la culture de champignons afin de garantir la performance, la traçabilité et la standardisation industrielle.",
 primaryCta: "Découvrir Nos Produits",
 secondaryCta: "Réserver un Conseil",
-gallery_title: "Au cœur de Biotech Agro",
+gallery_title: "Au cœur de Mycelium Tech Digital",
 gallery_subtitle: "Un aperçu visuel de notre laboratoire, de la production de mycélium, du contrôle qualité et du travail terrain.",
     // About / Choose Section
-    chooseTitle: "Pourquoi les producteurs choisissent Biotech Agro",
-    chooseSubtitle: "Biotech Agro associe la biotechnologie, le contrôle qualité et le digital pour offrir une solution complète de production de mycélium sur les marchés tunisien et africain.",
+    chooseTitle: "Pourquoi les producteurs choisissent Mycelium Tech Digital",
+    chooseSubtitle: "Mycelium Tech Digital associe la biotechnologie, le contrôle qualité et le digital pour offrir une solution complète de production de mycélium sur les marchés tunisien et africain.",
     choosePhaseTitle1: "Procédé innovant",
     choosePhaseDesc1: "Mycélium liquide de qualité supérieure produit en conditions stériles avec suivi lot par lot.",
     choosePhaseTitle2: "Traçabilité par QR code",
@@ -312,7 +312,7 @@ gallery_subtitle: "Un aperçu visuel de notre laboratoire, de la production de m
     about_title: "Pionnier des biotechnologies mycologiques en Afrique du Nord",
     about_subtitle: "Né au cœur des terres fertiles de Tunisie, nous lisons savoir-faire local et excellence scientifique.",
     storyHeading: "Valorisation des ressources agricoles",
-    story: "Biotech Agro a été fondée pour valoriser les coproduits et pailles de céréales locales grâce à notre savoir-faire en mycologie industrielle, créant des semences d'excellence et des biomatériaux.",
+    story: "Mycelium Tech Digital a été fondée pour valoriser les coproduits et pailles de céréales locales grâce à notre savoir-faire en mycologie industrielle, créant des semences d'excellence et des biomatériaux.",
     teamFocus: "Notre équipe de docteurs et d'ingénieurs assure des contrôles de pureté rigoureux garantissant un mycélium d'une vitalité exceptionnelle.",
     missionTitle: "Notre Mission Stratégique",
     mission: "Démocratiser la culture de champignons en Tunisie, fournir des semences d'élite et créer des biomatériaux biosourcés.",
@@ -675,16 +675,16 @@ function EditableImage({
 const defaultTeamFallbacks: TeamMember[] = [
   {
     id: "team_1",
-    name: "Ali",
-    role: "Fondateur & analyste en systèmes d’information",
-    bio: "Concepteur de la plateforme interne BiotechAgro dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, du business plan, des protocoles de production et du développement du site et de l’application interne.",
+    name: "AlaEddine",
+    role: "Cofondateur & CEO",
+    bio: "Automatisation, systèmes connectés, supervision, architecture technique, structuration de l'application et contrôle.",
     image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=300"
   },
   {
     id: "team_2",
-    name: "Alaa",
-    role: "Cofondateur & investisseur",
-    bio: "Partenaire stratégique de BiotechAgro, engagé dans le développement du projet, le soutien à l’investissement et la structuration de la croissance commerciale.",
+    name: "Ali",
+    role: "Cofondateur & analyste en systèmes d’information",
+    bio: "Concepteur de la plateforme interne Mycelium Tech Digital dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, des protocoles de production et du développement du site et de l’application interne.",
     image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=300"
   }
 ];
@@ -1014,7 +1014,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
   const buildSupabaseAdminUser = (user: User): AdminPanelUser => ({
     username: "admin",
-    displayName: "BiotechAgro Admin",
+    displayName: "Mycelium Tech Digital Admin",
     email: user.email || ADMIN_EMAIL,
     role: "owner",
     isActive: true,
@@ -2100,9 +2100,9 @@ const getGalleryAutoTranslations = (
 ) => {
   const translations: Record<string, Record<string, string>> = {
     title: {
-      en: "Inside Biotech Agro",
-      fr: "Au cœur de Biotech Agro",
-      ar: "داخل مختبر بيوتك أغرو"
+      en: "Inside Mycelium Tech Digital",
+      fr: "Au cœur de Mycelium Tech Digital",
+      ar: "داخل مختبر ميسليوم تك ديجيتال"
     },
     subtitle: {
       en: "A visual look at our laboratory, mycelium production, quality control and field work.",
@@ -2135,9 +2135,9 @@ const normalizeGalleryText = (value: string) => {
 const getGalleryDisplayText = (field: "title" | "subtitle") => {
   const fallbackText: Record<"title" | "subtitle", Record<"en" | "fr" | "ar", string>> = {
     title: {
-      en: "Inside Biotech Agro",
-      fr: "Au cœur de Biotech Agro",
-      ar: "داخل مختبر بيوتك أغرو"
+      en: "Inside Mycelium Tech Digital",
+      fr: "Au cœur de Mycelium Tech Digital",
+      ar: "داخل مختبر ميسليوم تك ديجيتال"
     },
     subtitle: {
       en: "A visual look at our laboratory, mycelium production, quality control and field work.",
@@ -3074,7 +3074,7 @@ const handleUploadHeroBackground = async (file: File) => {
                 >
                   <img
                     src={image.url}
-                    alt={image.title || "Biotech Agro gallery image"}
+                    alt={image.title || "Mycelium Tech Digital gallery image"}
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                   />
@@ -3172,14 +3172,14 @@ const handleUploadHeroBackground = async (file: File) => {
               <div className="text-center space-y-3 mb-12">
                 <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">
                   <EditableText
-                    value={getLocalizedValue(siteContent.about, "chooseTitle", currentLanguage, "Why growers choose Biotech Agro")}
+                    value={getLocalizedValue(siteContent.about, "chooseTitle", currentLanguage, "Why growers choose Mycelium Tech Digital")}
                     onSave={(val) => handleUpdateTextSection("about", { ...siteContent.about, chooseTitle: val, [`chooseTitle_${currentLanguage}`]: val }, false)}
                     isAdmin={isAdminLoggedIn}
                   />
                 </h2>
                 <p className="text-stone-500 max-w-3xl mx-auto text-sm sm:text-base font-light leading-relaxed">
                   <EditableText
-                    value={getLocalizedValue(siteContent.about, "chooseSubtitle", currentLanguage, "Biotech Agro combines biotechnology, quality control, and digital tools to offer a complete mycelium production solution tailored to the Tunisian and African markets.")}
+                    value={getLocalizedValue(siteContent.about, "chooseSubtitle", currentLanguage, "Mycelium Tech Digital combines biotechnology, quality control, and digital tools to offer a complete mycelium production solution tailored to the Tunisian and African markets.")}
                     onSave={(val) => handleUpdateTextSection("about", { ...siteContent.about, chooseSubtitle: val, [`chooseSubtitle_${currentLanguage}`]: val }, false)}
                     isAdmin={isAdminLoggedIn}
                     multiline={true}
@@ -3970,7 +3970,7 @@ const handleUploadHeroBackground = async (file: File) => {
 
                 {/* Secure certificate box */}
                 <div className="p-4 bg-stone-950 text-stone-100 rounded-2xl border border-stone-800 space-y-2">
-                  <span className="text-[9px] font-mono text-emerald-400 font-bold tracking-wider block"> MYCELIUM BIOTECH AGRO</span>
+                  <span className="text-[9px] font-mono text-emerald-400 font-bold tracking-wider block"> Mycelium Tech Digital</span>
                   <h4 className="text-xs font-bold">🛡️ Authenticity Verification Certificate</h4>
                   <p className="text-[11px] text-stone-400 font-light leading-relaxed">
                     This single jar, spawn bag or grow kit contains active, contaminant-free mycelium inoculated inside our premium sterile cleanrooms in Tunisia. Substrate sterilization completed under 121°C autoclaving.
@@ -4544,7 +4544,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   {currentLanguage === 'en' ? "Meet Our Team" : currentLanguage === 'ar' ? "فريق العمل" : "Notre Équipe"}
                 </h2>
                 <p className="text-stone-500 font-light text-sm">
-                  {currentLanguage === 'en' ? "Discover the passionate professionals behind Biotech Agro Tunisia." : currentLanguage === 'ar' ? "اكتشف الكفاءات التونسية الشغوفة التي تقود مسيرة التطوير الحيوية." : "Découvrez les professionnels passionnés derrière Biotech Agro Tunisia."}
+                  {currentLanguage === 'en' ? "Discover the passionate professionals behind Mycelium Tech Digital Tunisia." : currentLanguage === 'ar' ? "اكتشف الكفاءات التونسية الشغوفة التي تقود مسيرة التطوير الحيوية." : "Découvrez les professionnels passionnés derrière Mycelium Tech Digital Tunisia."}
                 </p>
               </div>
 
@@ -4730,7 +4730,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   value={
                     siteContent?.catalog?.[`title_${currentLanguage}` as keyof CatalogSection] ||
                     siteContent?.catalog?.title ||
-                    "Our Biotech Catalog"
+                    "Our Mycelium Tech Digital Catalog"
                   }
                   onSave={(val) => {
                     const existingCatalog = siteContent?.catalog || {};
@@ -5463,7 +5463,7 @@ const handleUploadHeroBackground = async (file: File) => {
                     style={{ border: 0 }}
                     allowFullScreen={false}
                     loading="lazy"
-                    title="Biotech Agro Location Map"
+                    title="Mycelium Tech Digital Location Map"
                     referrerPolicy="no-referrer"
                     className="absolute inset-0"
                   />
@@ -5674,7 +5674,7 @@ const handleUploadHeroBackground = async (file: File) => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-stone-200 rounded-2xl p-6 shadow-xs">
                   <div>
                     <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-mono font-bold tracking-widest block w-fit mb-1.5">
-                      SECURE BIOTECH CONSOLE
+                      SECURE Mycelium Tech Digital CONSOLE
                     </span>
                     <h1 className="font-display text-2xl font-bold text-stone-900">Lab Hub Central Panel</h1>
                     <p className="text-xs text-stone-400 font-light mt-0.5">Edit web information decks, catalogs, and manage incoming messages.</p>
@@ -5808,7 +5808,7 @@ const handleUploadHeroBackground = async (file: File) => {
                             )}
                           </div>
                           <div>
-                            <span className="text-xs font-semibold text-stone-800 block">Biotech Agro</span>
+                            <span className="text-xs font-semibold text-stone-800 block">Mycelium Tech Digital</span>
                             <span className="text-[10px] text-stone-400 font-mono">Dynamic Brand Asset</span>
                           </div>
                         </div>
@@ -5993,7 +5993,7 @@ const handleUploadHeroBackground = async (file: File) => {
                                 [`description_${adminFooterLanguage}`]: e.target.value 
                               })}
                               className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900 focus:outline-hidden focus:border-emerald-705 transition-all font-light"
-                              placeholder="Describe your Biotech Agro hub..."
+                              placeholder="Describe your Mycelium Tech Digital hub..."
                             />
                           </div>
 
@@ -6008,7 +6008,7 @@ const handleUploadHeroBackground = async (file: File) => {
                                 [`copyright_${adminFooterLanguage}`]: e.target.value 
                               })}
                               className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900 focus:outline-hidden focus:border-emerald-705 transition-all font-light"
-                              placeholder="e.g. © 2026 Biotech Agro..."
+                              placeholder="e.g. © 2026 Mycelium Tech Digital..."
                             />
                           </div>
 

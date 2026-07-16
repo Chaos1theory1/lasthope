@@ -189,20 +189,20 @@ async function sendResetCodeEmail(toEmail: string, code: string): Promise<{ succ
     }
 
     const senderEmail = cleanEnvStr(process.env.SMTP_USER || "biotechagro.digital@gmail.com");
-    const senderName = "🔑 Biotech Agro Verification";
+    const senderName = "🔑 Mycelium Tech Digital Verification";
 
     const mailOptions = {
       from: `"${senderName}" <${senderEmail}>`,
       to: toEmail,
-      subject: "🛡️ Administrative Security Code - Biotech-Agro Verification",
-      text: `Hello,\n\nA request was made to update the administrative credentials of Biotech-Agro Lab portal.\n\nYour secure 6-digit verification code is: ${code}\n\nThis verification sequence is valid for 10 minutes. If you did not initiate this, please secure your administrative console instantly.\n\nPortal Security Operations\nBiotech-Agro (biotech-agro.com)`,
+      subject: "🛡️ Administrative Security Code - Mycelium Tech Digital Verification",
+      text: `Hello,\n\nA request was made to update the administrative credentials of Mycelium Tech Digital Lab portal.\n\nYour secure 6-digit verification code is: ${code}\n\nThis verification sequence is valid for 10 minutes. If you did not initiate this, please secure your administrative console instantly.\n\nPortal Security Operations\nMycelium Tech Digital (biotech-agro.com)`,
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; padding: 35px 25px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #fafaf9; color: #1c1917;">
           <div style="text-align: center; margin-bottom: 25px;">
             <div style="display: inline-block; padding: 14px; background-color: #f0fdf4; border-radius: 50%; border: 1px solid #bbf7d0; margin-bottom: 12px;">
               <span style="font-size: 28px; line-height: 1;">🔬</span>
             </div>
-            <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: #1c1917; letter-spacing: -0.035em;">Biotech-Agro Lab</h2>
+            <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: #1c1917; letter-spacing: -0.035em;">Mycelium Tech Digital Lab</h2>
             <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #15803d; font-weight: 700; margin: 4px 0 0 0;">Secure Password Reset Services</p>
           </div>
           
@@ -221,7 +221,7 @@ async function sendResetCodeEmail(toEmail: string, code: string): Promise<{ succ
           </div>
 
           <div style="border-top: 1px solid #e7e5e4; padding-top: 18px; text-align: center; font-size: 11px; color: #78716c; line-height: 1.5;">
-            <p style="margin: 0;">This transmission was dispatched to <strong>${toEmail}</strong> representing Biotech-Agro.</p>
+            <p style="margin: 0;">This transmission was dispatched to <strong>${toEmail}</strong> representing Mycelium Tech Digital.</p>
             <p style="margin: 4px 0 0 0;">Admin Priority Routing: Gateway (smtp.gmail.com) • Cloud Security Infrastructure</p>
           </div>
         </div>
@@ -247,21 +247,21 @@ async function sendContactInquiryEmail(adminEmail: string, inquiry: { senderName
     }
 
     const senderEmail = cleanEnvStr(process.env.SMTP_USER || "biotechagro.digital@gmail.com");
-    const senderName = "📬 Biotech Agro Inquiry";
+    const senderName = "📬 Mycelium Tech Digital Inquiry";
 
     const mailOptions = {
       from: `"${senderName}" <${senderEmail}>`,
       to: adminEmail,
       replyTo: inquiry.senderEmail,
-      subject: `📬 Biotech-Agro [New Contact Inquiry]: ${inquiry.subject}`,
-      text: `Hello Admin,\n\nYou have received a new contact inquiry through the Biotech Agro portal:\n\n---\nName: ${inquiry.senderName}\nEmail: ${inquiry.senderEmail}\nPhone: ${inquiry.senderPhone || "Not provided"}\nSubject: ${inquiry.subject}\n\nMessage:\n${inquiry.message}\n---\n\nReply directly to: ${inquiry.senderEmail}\n\nPortal Security Operations\nBiotech-Agro (biotech-agro.com)`,
+      subject: `📬 Mycelium Tech Digital [New Contact Inquiry]: ${inquiry.subject}`,
+      text: `Hello Admin,\n\nYou have received a new contact inquiry through the Mycelium Tech Digital portal:\n\n---\nName: ${inquiry.senderName}\nEmail: ${inquiry.senderEmail}\nPhone: ${inquiry.senderPhone || "Not provided"}\nSubject: ${inquiry.subject}\n\nMessage:\n${inquiry.message}\n---\n\nReply directly to: ${inquiry.senderEmail}\n\nPortal Security Operations\nMycelium Tech Digital (biotech-agro.com)`,
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; padding: 35px 25px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #fafaf9; color: #1c1917;">
           <div style="text-align: center; margin-bottom: 25px;">
             <div style="display: inline-block; padding: 14px; background-color: #f0fdf4; border-radius: 50%; border: 1px solid #bbf7d0; margin-bottom: 12px;">
               <span style="font-size: 28px; line-height: 1;">📬</span>
             </div>
-            <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: #1c1917; letter-spacing: -0.035em;">Biotech-Agro Lab</h2>
+            <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: #1c1917; letter-spacing: -0.035em;">Mycelium Tech Digital Lab</h2>
             <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #15803d; font-weight: 700; margin: 4px 0 0 0;">New Contact Form Submission</p>
           </div>
           
@@ -302,7 +302,7 @@ async function sendContactInquiryEmail(adminEmail: string, inquiry: { senderName
 
           <div style="border-top: 1px solid #e7e5e4; padding-top: 18px; text-align: center; font-size: 11px; color: #78716c; line-height: 1.5;">
             <p style="margin: 0;">This notification matches admin setting forwarding to <strong>${adminEmail}</strong>.</p>
-            <p style="margin: 4px 0 0 0;">Priority Routing: Biotech-Agro Lead System • Cloud Security Infrastructure</p>
+            <p style="margin: 4px 0 0 0;">Priority Routing: Mycelium Tech Digital Lead System • Cloud Security Infrastructure</p>
           </div>
         </div>
       `
@@ -405,7 +405,7 @@ app.post("/api/messages", async (req, res) => {
 
   // Stylized simulated or live console delivery card
   console.log(`\n=============================================================`);
-  console.log(`✉️  SECURE EMAIL DELIVERY SYSTEM (Biotech Agro Laboratory)`);
+  console.log(`✉️  SECURE EMAIL DELIVERY SYSTEM (Mycelium Tech Digital Laboratory)`);
   console.log(`-------------------------------------------------------------`);
   console.log(`To:       ${adminEmail}`);
   console.log(`From (Visitor): ${newMessage.senderName} <${newMessage.senderEmail}>`);
@@ -502,7 +502,7 @@ app.post("/api/auth/request-reset", async (req, res) => {
 
   // Print highly stylized mock email delivery card to the console logs
   console.log(`\n=============================================================`);
-  console.log(`✉️  SECURE EMAIL DELIVERY SYSTEM (Biotech Agro Laboratory)`);
+  console.log(`✉️  SECURE EMAIL DELIVERY SYSTEM (Mycelium Tech Digital Laboratory)`);
   console.log(`-------------------------------------------------------------`);
   console.log(`To:       ${adminEmail}`);
   console.log(`Subject:  Lab Administrative Code Verification Reset`);
@@ -518,7 +518,7 @@ app.post("/api/auth/request-reset", async (req, res) => {
     // If sent via real SMTP, do not expose simulatedCode in client response for highest production security!
     return res.json({
       success: true,
-      message: `A secure verification code has been dispatched to ${adminEmail} via Biotech-Agro Mail routing.`,
+      message: `A secure verification code has been dispatched to ${adminEmail} via Mycelium Tech Digital Mail routing.`,
       realSent: true,
     });
   } else if (mailResult.error) {
@@ -868,7 +868,7 @@ app.post("/api/assistant", requireAdmin, async (req, res) => {
   }
 
   const systemInstruction = `You are an expert bio-engineering copywriter specializing in sustainable agriculture, circular bio-economy, organic farming, and mycelium biotechnology in Tunisia. 
-The user is managing their Biotech Agro website and needs your assistance drafting clear, professional copy. 
+The user is managing their Mycelium Tech Digital website and needs your assistance drafting clear, professional copy. 
 
 Fulfill their request in a highly academic yet commercially appealing and accessible tone. You can use French, English, or Tunisian terms where appropriate to resonate with local farmers. Keep the response clean and return ONLY the rewritten copy without conversational intro/outro.`;
 
