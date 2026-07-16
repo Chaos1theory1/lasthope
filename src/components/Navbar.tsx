@@ -71,10 +71,10 @@ export default function Navbar({
             )}
             <div>
               <span className="font-display font-medium text-lg tracking-tight text-stone-900 block leading-tight">
-                Biotech Agro
+                Mycelium Tech Digital
               </span>
               <span className="text-[10px] font-mono text-emerald-700 font-bold uppercase tracking-widest block -mt-0.5">
-                Biotech Labs
+                Mycelium Tech Digital Labs
               </span>
             </div>
           </div>

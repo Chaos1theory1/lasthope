@@ -44,10 +44,10 @@ export default function Footer({
         return currentLanguage === "en" ? "Office Contacts" : currentLanguage === "ar" ? "الاتصال والمكاتب" : "Secrétariat";
       case "allRightsReserved":
         return currentLanguage === "en"
-          ? `© ${currentYear} Tunisian Mycelium Biotech. Registered under Startup Act. All Rights Reserved.`
+          ? `© ${currentYear} Mycelium Tech Digital. Registered Tunisian National Enterprise Record. All Rights Reserved.`
           : currentLanguage === "ar"
-          ? `© ${currentYear} بيوتك أغرو تونس. جميع الحقوق محفوظة ومسجلة طبقاً لقانون المؤسسات الناشئة.`
-          : `© ${currentYear} Tunisian Mycelium Biotech. Enregistré sous le Startup Act Tunisien. Tous droits réservés.`;
+          ? `© ${currentYear}  ميسليوم تك ديجيتال . جميع الحقوق محفوظة ومسجلة طبقاً لقانون المؤسسات .`
+          : `© ${currentYear} Mycelium Tech Digital. Enregistré sous RNE Tunisien. Tous droits réservés.`;
       case "privacyCharter":
         return currentLanguage === "en" ? "Privacy Charter" : currentLanguage === "ar" ? "ميثاق الخصوصية" : "Charte de Confidentialité";
       case "technicalSpec":
@@ -106,7 +106,7 @@ export default function Footer({
                 </div>
               )}
               <span className="font-display font-medium text-lg text-white tracking-tight">
-                Biotech Agro
+                Mycelium Tech Digital
               </span>
             </div>
             <p className="text-sm text-stone-400 leading-relaxed font-light text-start">
