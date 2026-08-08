@@ -616,7 +616,7 @@ async function sendContactInquiryEmail(adminEmail: string, inquiry: { senderName
       return val.replace(/^["']|["']$/g, "").trim();
     };
 
-    const senderEmail = cleanEnvStr(process.env.SMTP_USER || "YOYOYO");
+    const senderEmail = "contact@biotech-agro.com";
     const senderName = "📬 Mycelium Tech Digital Inquiry";
 
     const mailOptions = {
