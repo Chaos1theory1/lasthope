@@ -689,7 +689,7 @@ const defaultTeamFallbacks: TeamMember[] = [
   {
     id: "team_1",
     name: "AlaEddine",
-    role: "Cofondateur & CEO",
+    role: "Cofondateur",
     bio: "Automatisation, systèmes connectés, supervision, architecture technique, structuration de l'application et contrôle.",
     image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/alaa.webp"
   },
@@ -698,7 +698,7 @@ const defaultTeamFallbacks: TeamMember[] = [
     name: "Ali",
     role: "Cofondateur & analyste en systèmes d’information",
     bio: "Concepteur de la plateforme interne Mycelium Tech Digital dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, des protocoles de production et du développement du site et de l’application interne.",
-    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/ali.webp"
+    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/Ali.webp"
   }
 ];
 
@@ -4341,10 +4341,10 @@ const handleUploadHeroBackground = async (file: File) => {
                 <EditableImage
                   src={
                     currentLanguage === "fr"
-                      ? siteContent.about.frenchLabImage || "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/French.webp"
+                      ? siteContent.about.frenchLabImage || "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/Cover_fr.webp"
                       : currentLanguage === "ar"
-                      ? siteContent.about.arabicLabImage || "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/Arabic.webp"
-                      : siteContent.about.englishLabImage || "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/English.webp"
+                      ? siteContent.about.arabicLabImage || "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/Cover_ar.webp"
+                      : siteContent.about.englishLabImage || "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/Cover_en.webp"
                   }
                   alt={`${currentLanguage} illustration`}
                   onSave={(newImg) => {
