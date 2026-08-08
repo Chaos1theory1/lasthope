@@ -1088,6 +1088,11 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
 
   const loadAdminUsers = async (token = authToken) => {
+    if (authMode === "supabase") {
+      setAdminUsers([]);
+      setAdminUsersError("");
+      return;
+    }
     if (!token) return;
 
     try {
@@ -5712,7 +5717,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   </div>
                 </div>
 
-                {renderAdminUsersPanel()}
+               {false && renderAdminUsersPanel()}
 
                 {/* MAIN GRID: Content management area */}
                 <div className="w-full space-y-12">

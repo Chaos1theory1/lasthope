@@ -9,6 +9,7 @@ import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "biotechagro.digital@gmail.com").trim().toLowerCase();
+const APP_ADMINS_TABLE = process.env.SUPABASE_APP_ADMINS_TABLE || "app_admins";
 const SUPABASE_MEDIA_BUCKET = process.env.SUPABASE_MEDIA_BUCKET || "media";
 const SUPABASE_STATE_TABLE = process.env.SUPABASE_STATE_TABLE || "site_state";
 const PUBLIC_STATE_ID = "public";
@@ -692,6 +693,70 @@ function getSessionUsernameFromToken(token?: string): string | null {
 }
 
 // Middleware to secure administrator endpoints
+async function isActiveAppAdminByEmail(
+  email: string | null | undefined,
+  token?: string
+): Promise<boolean> {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+
+  if (!cleanEmail || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return false;
+  }
+
+  try {
+    // Best server-side path: use service role to read public.app_admins directly.
+    // This is safe because this code runs only on the backend.
+    if (SUPABASE_SERVICE_ROLE_KEY) {
+      const { data, error } = await supabaseServer
+        .from(APP_ADMINS_TABLE)
+        .select("email,is_active")
+        .eq("email", cleanEmail)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Failed to check app_admins table:", error);
+        return false;
+      }
+
+      return Boolean(data);
+    }
+
+    // Fallback path: use the logged-in user's JWT and the RPC function.
+    if (!token) {
+      return false;
+    }
+
+    const requestClient = createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+
+    const { data, error } = await requestClient.rpc("is_app_admin");
+
+    if (error) {
+      console.error("Failed to call is_app_admin RPC:", error);
+      return false;
+    }
+
+    return data === true;
+  } catch (error) {
+    console.error("Admin authorization check failed:", error);
+    return false;
+  }
+}
+
 async function getSupabaseAdminFromToken(token: string): Promise<AdminUser | null> {
   if (!isSupabaseConfigured) {
     return null;
@@ -705,16 +770,20 @@ async function getSupabaseAdminFromToken(token: string): Promise<AdminUser | nul
       return null;
     }
 
-    if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+    const userEmail = String(user.email || "").trim().toLowerCase();
+
+    const isAdmin = await isActiveAppAdminByEmail(userEmail, token);
+
+    if (!isAdmin) {
       return null;
     }
 
     const generated = makePasswordHash("supabase-authenticated-admin");
 
     return {
-      username: "admin",
-      displayName: "Mycelium Tech Digital Admin",
-      email: user.email || ADMIN_EMAIL,
+      username: `supabase_${user.id}`,
+      displayName: userEmail.split("@")[0] || "Supabase Admin",
+      email: userEmail,
       role: "owner",
       passwordSalt: generated.passwordSalt,
       passwordHash: generated.passwordHash,
@@ -724,6 +793,7 @@ async function getSupabaseAdminFromToken(token: string): Promise<AdminUser | nul
       resetCode: null
     };
   } catch (error) {
+    console.error("Supabase admin token verification failed:", error);
     return null;
   }
 }
