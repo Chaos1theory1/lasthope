@@ -691,14 +691,14 @@ const defaultTeamFallbacks: TeamMember[] = [
     name: "AlaEddine",
     role: "Cofondateur & CEO",
     bio: "Automatisation, systèmes connectés, supervision, architecture technique, structuration de l'application et contrôle.",
-    image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=300"
+    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/alaa.webp"
   },
   {
     id: "team_2",
     name: "Ali",
     role: "Cofondateur & analyste en systèmes d’information",
     bio: "Concepteur de la plateforme interne Mycelium Tech Digital dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, des protocoles de production et du développement du site et de l’application interne.",
-    image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=300"
+    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/ali.webp"
   }
 ];
 
@@ -4341,10 +4341,10 @@ const handleUploadHeroBackground = async (file: File) => {
                 <EditableImage
                   src={
                     currentLanguage === "fr"
-                      ? siteContent.about.frenchLabImage || "/src/assets/images/French.jpeg"
+                      ? siteContent.about.frenchLabImage || "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/French.webp"
                       : currentLanguage === "ar"
-                      ? siteContent.about.arabicLabImage || "/src/assets/images/Arabic.jpeg"
-                      : siteContent.about.englishLabImage || "/src/assets/images/English.jpeg"
+                      ? siteContent.about.arabicLabImage || "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/Arabic.webp"
+                      : siteContent.about.englishLabImage || "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/English.webp"
                   }
                   alt={`${currentLanguage} illustration`}
                   onSave={(newImg) => {

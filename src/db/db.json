@@ -59,7 +59,7 @@
       "category": "Grain Spawn",
       "price": "14 TND / kg",
       "status": "Available",
-      "image": "/src/assets/images/pleurote_1781091610902.png",
+      "image": "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/products/pleurote.png",
       "specifications": [
         "Substrate Carrier: Local Wheat Grains",
         "Inoculation Ratio: 5% - 8%",
@@ -76,7 +76,7 @@
       "category": "Grain Spawn",
       "price": "24 TND / kg",
       "status": "Available",
-      "image": "/src/assets/images/shiitake_mushroom_1781092138697.png",
+      "image": "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/products/shiitake_mushroom.png",
       "specifications": [
         "Substrate Carrier: Premium Organic Rye/Barley",
         "Spawn Inoculation Rate: 8% - 10%",
@@ -92,7 +92,7 @@
       "category": "Bio-materials",
       "price": "3.5 TND / piece",
       "status": "Pre-order",
-      "image": "/src/assets/images/mycelium_packaging_1781092204260.png",
+      "image": "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/products/mycelium_packaging_1781092204260.png",
       "specifications": [
         "Base Bio-weight: ~120 g/dm³",
         "Compressive Strength: 0.2 MPa",
@@ -108,7 +108,7 @@
       "category": "Starting Cultures",
       "price": "75 TND / plate",
       "status": "Available",
-      "image": "/src/assets/images/agar_petri_dish_1781092218933.png",
+      "image": "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/products/agar_petri_dish_1781092218933.png",
       "specifications": [
         "Agar Medium: 2% Malt Extract with Peptone",
         "Petri-Dish size: 90 mm diameter",
@@ -124,7 +124,7 @@
       "category": "Grain Spawn",
       "price": "18 TND / kg",
       "status": "Available",
-      "image": "/src/assets/images/champignon_de_paris_1781091597160.png",
+      "image": "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/products/CHampinon%20de%20paris%20Spawn.webp",
       "specifications": [
         "Substrate Carrier: Local Premium Grain Mix",
         "Spawn Inoculation Rate: 6% - 9%",
@@ -141,7 +141,7 @@
       "description": "Professional engineering consulting for climate setups, automated misting systems, ventilation ratios, and floor maps matching the Mediterranean arid-to-subhumid climate.",
       "price": "From 1200 TND",
       "duration": "Custom Project Schedule",
-      "image": "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=600",
+      "image": "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/services/Industrial%20Cultivation%20Farm%20Design.webp",
       "benefits": [
         "CFD Airflow Heat Modeling for growing tunnels",
         "Humidifier sizing for dry Tunisian summer periods",
@@ -155,7 +155,7 @@
       "description": "Technical support for planning, building, and certifying standard low-budget or professional-grade tissue culture rooms, laminar flow hoods, and grain sterilization rigs.",
       "price": "From 850 TND",
       "duration": "3 - 5 Days Consulting",
-      "image": "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&q=80&w=600",
+      "image": "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/services/Mycology%20Labs%20&%20Cleanroom%20Setup.webp",
       "benefits": [
         "Laminar flow hood HEPA air pressure rating checks",
         "Sterilization autoclave volume evaluation",
