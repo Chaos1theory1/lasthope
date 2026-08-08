@@ -709,15 +709,12 @@ async function sendVisitorAutoReplyEmail(
       return val.replace(/^["']|["']$/g, "").trim();
     };
 
-    const senderEmail = cleanEnvStr(
-      process.env.SMTP_FROM_EMAIL ||
-      process.env.SMTP_USER ||
-      "contact@biotech-agro.com"
-    );
+    const senderEmail ="contact@biotech-agro.com";
+    
 
     const senderName = cleanEnvStr(
       process.env.SMTP_FROM_NAME ||
-      "Biotech Agro Contact"
+      "Mycelium Tech Digital Contact"
     );
 
     const safeName = inquiry.senderName?.trim() || "there";
