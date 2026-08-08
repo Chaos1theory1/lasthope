@@ -2103,7 +2103,7 @@ const handleImageUpload = async (
 const getHeroBackgroundImage = () => {
   return (
     siteContent?.hero?.backgroundImage ||
-    "/assets/images/home_hero_background.png"
+    "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/home/backgroundhome_modified.webp"
   );
 };
 
