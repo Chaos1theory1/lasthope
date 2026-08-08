@@ -726,22 +726,22 @@ async function sendVisitorAutoReplyEmail(
       from: `"${senderName}" <${senderEmail}>`,
       to: inquiry.senderEmail,
       replyTo: senderEmail,
-      subject: "Thank you for contacting Biotech Agro",
+      subject: "Thank you for contacting Mycelium Tech Digital",
       text: `Hello ${safeName},
 
-Thank you for reaching out to Biotech Agro.
+Thank you for reaching out to Mycelium Tech Digital.
 
 We confirm that we have received your inquiry. Our team will review your message and get back to you as soon as possible.
 
 We appreciate your interest in our work.
 
 Best regards,
-Biotech Agro Team`,
+Mycelium Tech Digital Team`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 30px; background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 16px; color: #1c1917;">
           <div style="text-align: center; margin-bottom: 24px;">
             <h2 style="margin: 0; font-size: 22px; color: #14532d;">
-              Biotech Agro
+              Mycelium Tech Digital - Biotech Agro
             </h2>
             <p style="margin: 6px 0 0; font-size: 12px; color: #047857; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">
               Inquiry received
@@ -753,7 +753,7 @@ Biotech Agro Team`,
           </p>
 
           <p style="font-size: 14px; line-height: 1.7; color: #44403c;">
-            Thank you for reaching out to <strong>Biotech Agro</strong>.
+            Thank you for reaching out to <strong>Mycelium Tech Digital - Biotech Agro</strong>.
           </p>
 
           <p style="font-size: 14px; line-height: 1.7; color: #44403c;">
@@ -766,7 +766,7 @@ Biotech Agro Team`,
 
           <p style="font-size: 14px; line-height: 1.7; color: #44403c;">
             Best regards,<br />
-            <strong>Biotech Agro Team</strong>
+            <strong>Mycelium Tech Digital Team</strong>
           </p>
 
           <div style="border-top: 1px solid #e7e5e4; margin-top: 24px; padding-top: 16px; font-size: 11px; color: #78716c; text-align: center;">
