@@ -22,8 +22,8 @@ const SUPABASE_SERVER_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_SERVER_KEY);
 
 const supabaseServer = createClient(
-  SUPABASE_URL || "https://placeholder.supabase.co",
-  SUPABASE_SERVER_KEY || "placeholder-key",
+  SUPABASE_URL || "https://liudctunhgozfmwkooeq.supabase.co",
+  SUPABASE_SERVER_KEY || "sb_publishable_wVBHZDYlclODhethUGUYqA_fuM2gvW6",
   {
     auth: {
       autoRefreshToken: false,
@@ -34,8 +34,8 @@ const supabaseServer = createClient(
 
 
 const supabaseAuthVerifier = createClient(
-  SUPABASE_URL || "https://placeholder.supabase.co",
-  SUPABASE_ANON_KEY || SUPABASE_SERVER_KEY || "placeholder-key",
+  SUPABASE_URL || "https://liudctunhgozfmwkooeq.supabase.co",
+  SUPABASE_ANON_KEY || SUPABASE_SERVER_KEY || "sb_publishable_wVBHZDYlclODhethUGUYqA_fuM2gvW6",
   {
     auth: {
       autoRefreshToken: false,
@@ -52,8 +52,8 @@ function getSupabaseClientForRequest(req: express.Request) {
   }
 
   return createClient(
-    SUPABASE_URL || "https://placeholder.supabase.co",
-    SUPABASE_ANON_KEY || "placeholder-key",
+    SUPABASE_URL || "https://liudctunhgozfmwkooeq.supabase.co",
+    SUPABASE_ANON_KEY || "sb_publishable_wVBHZDYlclODhethUGUYqA_fuM2gvW6",
     {
       auth: {
         autoRefreshToken: false,
