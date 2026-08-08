@@ -44,20 +44,33 @@ import GoogleDriveVault from "./components/GoogleDriveVault";
 import { Product, Service, ContactMessage, SiteContent, DatabaseState, ProductCategory, ProductStatus, TeamMember, Certification, FeatureItem, CatalogSection, GalleryImage } from "./types";
 import { i18n } from "./translations";
 
-const ADMIN_EMAILS = [
-  "biotechagro.digital@gmail.com",
-  "rhouma.alaaa@gmail.com",
-  "baslyaligmail.com"
-];
-
-const isAuthorizedAdminEmail = (email?: string | null) =>
-  !!email && ADMIN_EMAILS.includes(email.toLowerCase());
+const FALLBACK_ADMIN_EMAIL = "biotechagro.digital@gmail.com";
 const SUPABASE_MEDIA_BUCKET = "media";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", supabaseAnonKey || "placeholder-anon-key");
+
+async function isCurrentSupabaseAdmin(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc("is_app_admin");
+
+    if (error) {
+      console.error("Supabase admin RPC check failed:", error);
+      return false;
+    }
+
+    return data === true;
+  } catch (error) {
+    console.error("Supabase admin check failed:", error);
+    return false;
+  }
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
 
 
 
@@ -1005,7 +1018,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const getLegacyOwnerFallback = (username = "admin"): AdminPanelUser => ({
     username,
     displayName: username === "admin" ? "Main Admin" : username,
-    email: adminSecEmail || ADMIN_EMAIL,
+    email: adminSecEmail || FALLBACK_ADMIN_EMAIL,
     role: username === "admin" ? "owner" : "admin",
     isActive: true,
     createdAt: "",
@@ -1015,7 +1028,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   const buildSupabaseAdminUser = (user: User): AdminPanelUser => ({
     username: "admin",
     displayName: "Mycelium Tech Digital Admin",
-    email: user.email || ADMIN_EMAIL,
+    email: user.email || FALLBACK_ADMIN_EMAIL,
     role: "owner",
     isActive: true,
     createdAt: user.created_at || "",
@@ -1131,7 +1144,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`
+        Authorization: `Bearer ${await getAdminRequestToken()}`
       },
       body: JSON.stringify(newAdminUserForm)
     });
@@ -1195,7 +1208,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify({
           isActive: !user.isActive
@@ -1240,7 +1253,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify({
           displayName,
@@ -1279,7 +1292,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify({
           newPassword: resettingAdminPassword.trim()
@@ -1321,7 +1334,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       const response = await fetch(`/api/admin/users/${encodeURIComponent(user.username)}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         }
       });
 
@@ -1357,7 +1370,9 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
       if (!isMounted || !user) return;
 
-      if (!isAuthorizedAdminEmail(user.email)) {
+      const isAdmin = await isCurrentSupabaseAdmin();
+
+      if (!isAdmin) {
         await supabase.auth.signOut();
         setLoginError("This Supabase account is not authorized as admin.");
         return;
@@ -1370,7 +1385,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       setAuthToken(token);
       setIsAdminLoggedIn(true);
       setCurrentAdminUser(buildSupabaseAdminUser(user));
-      setAdminSecEmail(ADMIN_EMAIL);
+      setAdminSecEmail(user.email || FALLBACK_ADMIN_EMAIL);
       setAdminPassword("");
       setAdminUsername("");
       setLoginError("");
@@ -1379,13 +1394,12 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       if (token) {
         loadAdminInbox(token);
         loadAdminSettings(token);
-        loadAdminUsers(token);
       }
     };
 
     applySupabaseSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const user = session?.user || null;
 
       if (!user) {
@@ -1401,8 +1415,10 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         return;
       }
 
-      if (!isAuthorizedAdminEmail(user.email)) {
-        supabase.auth.signOut();
+      const isAdmin = await isCurrentSupabaseAdmin();
+
+      if (!isAdmin) {
+        await supabase.auth.signOut();
         setLoginError("This Supabase account is not authorized as admin.");
         return;
       }
@@ -1414,7 +1430,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       setAuthToken(token);
       setIsAdminLoggedIn(true);
       setCurrentAdminUser(buildSupabaseAdminUser(user));
-      setAdminSecEmail(ADMIN_EMAIL);
+      setAdminSecEmail(user.email || FALLBACK_ADMIN_EMAIL);
       setAdminPassword("");
       setAdminUsername("");
       setLoginError("");
@@ -1423,7 +1439,6 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       if (token) {
         loadAdminInbox(token);
         loadAdminSettings(token);
-        loadAdminUsers(token);
       }
     });
 
@@ -1493,8 +1508,8 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
 
       const email = adminUsername.trim().toLowerCase();
 
-      if (!isAuthorizedAdminEmail(email)) {
-        setLoginError("This email is not authorized for admin access.");
+      if (!isValidEmail(email)) {
+        setLoginError("Please enter a valid admin email address.");
         return;
       }
 
@@ -1534,6 +1549,36 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
     }
   };
 
+  const getAdminRequestToken = async (): Promise<string> => {
+    const { data, error } = await supabase.auth.getSession();
+    const session = data.session;
+
+    if (!error && session?.access_token) {
+      const isAdmin = await isCurrentSupabaseAdmin();
+
+      if (!isAdmin) {
+        await supabase.auth.signOut();
+        setAuthMode(null);
+        setSupabaseUser(null);
+        setAuthToken("");
+        setIsAdminLoggedIn(false);
+        setCurrentAdminUser(null);
+        throw new Error("This Supabase account is not authorized as admin.");
+      }
+
+      setAuthMode("supabase");
+      setSupabaseUser(session.user);
+      setAuthToken(session.access_token);
+      return session.access_token;
+    }
+
+    if (authToken) {
+      return authToken;
+    }
+
+    throw new Error("Your admin session is not ready. Please log out and log in again.");
+  };
+
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAdminPassword.trim()) return;
@@ -1546,7 +1591,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify({ newPassword: newAdminPassword })
       });
@@ -1577,7 +1622,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify({ email: adminSecEmail.trim() })
       });
@@ -1675,7 +1720,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify({ section, data: payload })
       });
@@ -1789,7 +1834,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify(qrForm)
       });
@@ -1850,7 +1895,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify(productForm)
       });
@@ -1882,7 +1927,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify(updatedProduct)
       });
@@ -1902,7 +1947,7 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
     try {
       const response = await fetch(`/api/products/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${authToken}` }
+        headers: { Authorization: `Bearer ${await getAdminRequestToken()}` }
       });
       if (response.ok) {
         loadPublicData();
@@ -1926,7 +1971,9 @@ const uploadMedia = async (
     throw new Error("Please log in with the Supabase admin magic link before uploading images.");
   }
 
-  if (!isAuthorizedAdminEmail(user.email)) {
+  const isAdmin = await isCurrentSupabaseAdmin();
+
+  if (!isAdmin) {
     throw new Error("This account is not authorized to upload media.");
   }
 
@@ -2261,7 +2308,7 @@ const handleUploadHeroBackground = async (file: File) => {
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${await getAdminRequestToken()}`
         },
         body: JSON.stringify(serviceForm)
       });
@@ -2284,7 +2331,7 @@ const handleUploadHeroBackground = async (file: File) => {
     try {
       const response = await fetch(`/api/services/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${authToken}` }
+        headers: { Authorization: `Bearer ${await getAdminRequestToken()}` }
       });
       if (response.ok) {
         loadPublicData();
@@ -2303,7 +2350,7 @@ const handleUploadHeroBackground = async (file: File) => {
     try {
       const response = await fetch(`/api/messages/${id}/read`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${authToken}` }
+        headers: { Authorization: `Bearer ${await getAdminRequestToken()}` }
       });
       if (response.ok) {
         loadAdminInbox(authToken);
@@ -2318,7 +2365,7 @@ const handleUploadHeroBackground = async (file: File) => {
     try {
       const response = await fetch(`/api/messages/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${authToken}` }
+        headers: { Authorization: `Bearer ${await getAdminRequestToken()}` }
       });
       if (response.ok) {
         loadAdminInbox(authToken);
@@ -5929,7 +5976,7 @@ const handleUploadHeroBackground = async (file: File) => {
                               method: "PUT",
                               headers: {
                                 "Content-Type": "application/json",
-                                Authorization: `Bearer ${authToken}`
+                                Authorization: `Bearer ${await getAdminRequestToken()}`
                               },
                               body: JSON.stringify({ section: "footer", data: editFooter })
                             });
@@ -5938,7 +5985,7 @@ const handleUploadHeroBackground = async (file: File) => {
                               method: "PUT",
                               headers: {
                                 "Content-Type": "application/json",
-                                Authorization: `Bearer ${authToken}`
+                                Authorization: `Bearer ${await getAdminRequestToken()}`
                               },
                               body: JSON.stringify({ section: "contact", data: editContactDetails })
                             });

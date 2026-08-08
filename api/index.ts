@@ -16,7 +16,7 @@ const PUBLIC_STATE_ID = "public";
 const ADMIN_USERS_STATE_ID = "admin_users";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || "";
 const SUPABASE_SERVER_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_SERVER_KEY);
@@ -699,18 +699,19 @@ async function isActiveAppAdminByEmail(
 ): Promise<boolean> {
   const cleanEmail = String(email || "").trim().toLowerCase();
 
-  if (!cleanEmail || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  if (!cleanEmail || !SUPABASE_URL || (!SUPABASE_SERVICE_ROLE_KEY && !SUPABASE_ANON_KEY)) {
+    console.error("Supabase admin check is not configured. Missing SUPABASE_URL plus SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY.");
     return false;
   }
 
   try {
     // Best server-side path: use service role to read public.app_admins directly.
-    // This is safe because this code runs only on the backend.
+    // This is safe because this code runs only on the backend and avoids frontend/hardcoded email lists.
     if (SUPABASE_SERVICE_ROLE_KEY) {
       const { data, error } = await supabaseServer
         .from(APP_ADMINS_TABLE)
         .select("email,is_active")
-        .eq("email", cleanEmail)
+        .ilike("email", cleanEmail)
         .eq("is_active", true)
         .maybeSingle();
 
@@ -723,7 +724,7 @@ async function isActiveAppAdminByEmail(
     }
 
     // Fallback path: use the logged-in user's JWT and the RPC function.
-    if (!token) {
+    if (!token || !SUPABASE_ANON_KEY) {
       return false;
     }
 
@@ -767,6 +768,9 @@ async function getSupabaseAdminFromToken(token: string): Promise<AdminUser | nul
     const user = data?.user;
 
     if (error || !user) {
+      if (error) {
+        console.error("Supabase token verification failed:", error.message || error);
+      }
       return null;
     }
 
