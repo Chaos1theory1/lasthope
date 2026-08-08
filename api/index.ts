@@ -688,6 +688,111 @@ async function sendContactInquiryEmail(adminEmail: string, inquiry: { senderName
 }
 
 
+
+async function sendVisitorAutoReplyEmail(
+  inquiry: {
+    senderName: string;
+    senderEmail: string;
+    subject: string;
+  }
+): Promise<{ success: boolean; realSent: boolean; error?: string }> {
+  try {
+    const transporter = getMailTransporter();
+
+    if (!transporter) {
+      console.warn("SMTP credentials not configured. Visitor auto-reply simulated only.");
+      return { success: true, realSent: false };
+    }
+
+    const cleanEnvStr = (val?: string): string => {
+      if (!val) return "";
+      return val.replace(/^["']|["']$/g, "").trim();
+    };
+
+    const senderEmail = cleanEnvStr(
+      process.env.SMTP_FROM_EMAIL ||
+      process.env.SMTP_USER ||
+      "contact@biotech-agro.com"
+    );
+
+    const senderName = cleanEnvStr(
+      process.env.SMTP_FROM_NAME ||
+      "Biotech Agro Contact"
+    );
+
+    const safeName = inquiry.senderName?.trim() || "there";
+
+    const mailOptions = {
+      from: `"${senderName}" <${senderEmail}>`,
+      to: inquiry.senderEmail,
+      replyTo: senderEmail,
+      subject: "Thank you for contacting Biotech Agro",
+      text: `Hello ${safeName},
+
+Thank you for reaching out to Biotech Agro.
+
+We confirm that we have received your inquiry. Our team will review your message and get back to you as soon as possible.
+
+We appreciate your interest in our work.
+
+Best regards,
+Biotech Agro Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 30px; background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 16px; color: #1c1917;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; font-size: 22px; color: #14532d;">
+              Biotech Agro
+            </h2>
+            <p style="margin: 6px 0 0; font-size: 12px; color: #047857; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">
+              Inquiry received
+            </p>
+          </div>
+
+          <p style="font-size: 14px; line-height: 1.7; color: #44403c;">
+            Hello <strong>${safeName}</strong>,
+          </p>
+
+          <p style="font-size: 14px; line-height: 1.7; color: #44403c;">
+            Thank you for reaching out to <strong>Biotech Agro</strong>.
+          </p>
+
+          <p style="font-size: 14px; line-height: 1.7; color: #44403c;">
+            We confirm that we have received your inquiry. Our team will review your message and get back to you as soon as possible.
+          </p>
+
+          <div style="background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 16px; margin: 22px 0; font-size: 13px; color: #14532d;">
+            We appreciate your interest in our work.
+          </div>
+
+          <p style="font-size: 14px; line-height: 1.7; color: #44403c;">
+            Best regards,<br />
+            <strong>Biotech Agro Team</strong>
+          </p>
+
+          <div style="border-top: 1px solid #e7e5e4; margin-top: 24px; padding-top: 16px; font-size: 11px; color: #78716c; text-align: center;">
+            This is an automatic confirmation email. You do not need to reply to this message.
+          </div>
+        </div>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Visitor auto-reply sent to ${inquiry.senderEmail}. MessageID: ${info.messageId}`);
+
+    return { success: true, realSent: true };
+  } catch (error: any) {
+    console.error("Failed to send visitor auto-reply email:", error);
+
+    return {
+      success: false,
+      realSent: false,
+      error: error.message || String(error)
+    };
+  }
+}
+
+
+
 // Secure token helpers using standard node:crypto (HMAC timing-safe token)
 function generateSessionToken(username: string): string {
   const cleanUsername = normalizeUsername(username);
@@ -1053,6 +1158,14 @@ app.post("/api/messages", async (req, res) => {
     subject: newMessage.subject,
     message: newMessage.message
   });
+
+
+// Send real SMTP notification as reply to the one who sent inquiry
+  await sendVisitorAutoReplyEmail({
+  senderName: newMessage.senderName,
+  senderEmail: newMessage.senderEmail,
+  subject: newMessage.subject
+});
 
   res.status(201).json({ success: true, message: newMessage });
 });
