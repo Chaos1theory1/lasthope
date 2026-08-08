@@ -32,6 +32,20 @@ const supabaseServer = createClient(
   }
 );
 
+
+const supabaseAuthVerifier = createClient(
+  SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_ANON_KEY || SUPABASE_SERVER_KEY || "placeholder-key",
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
+
+
+
 function getSupabaseClientForRequest(req: express.Request) {
   if (SUPABASE_SERVICE_ROLE_KEY) {
     return supabaseServer;
@@ -764,7 +778,7 @@ async function getSupabaseAdminFromToken(token: string): Promise<AdminUser | nul
   }
 
   try {
-    const { data, error } = await supabaseServer.auth.getUser(token);
+    const { data, error } = await supabaseAuthVerifier.auth.getUser(token);
     const user = data?.user;
 
     if (error || !user) {
@@ -809,22 +823,32 @@ async function requireAdmin(req: express.Request, res: express.Response, next: e
     return res.status(401).json({ error: "Access denied. Private session missing." });
   }
 
-  const token = authHeader.split(" ")[1];
+ const token = authHeader.split(" ")[1];
+const tokenLooksLikeJwt = token.split(".").length === 3;
 
-  // Preferred mode: Supabase magic-link session token.
-  const supabaseAdmin = await getSupabaseAdminFromToken(token);
-  if (supabaseAdmin) {
-    (req as any).adminUser = supabaseAdmin;
-    (req as any).authMode = "supabase";
-    return next();
-  }
+// Preferred mode: Supabase magic-link session token.
+const supabaseAdmin = await getSupabaseAdminFromToken(token);
+if (supabaseAdmin) {
+  (req as any).adminUser = supabaseAdmin;
+  (req as any).authMode = "supabase";
+  return next();
+}
 
-  // Backward compatibility: legacy username/password token.
-  const username = getSessionUsernameFromToken(token);
+// If the frontend sent a Supabase JWT but backend could not verify it,
+// do not show the old legacy-token error.
+if (tokenLooksLikeJwt) {
+  return res.status(403).json({
+    error:
+      "Supabase session token was received, but the backend could not verify it as an active admin. Check SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, and public.app_admins."
+  });
+}
 
-  if (!username) {
-    return res.status(403).json({ error: "Invalid or expired admin session token." });
-  }
+// Backward compatibility: legacy username/password token.
+const username = getSessionUsernameFromToken(token);
+
+if (!username) {
+  return res.status(403).json({ error: "Invalid or expired admin session token." });
+}
 
   try {
     const users = await getAdminUsers();

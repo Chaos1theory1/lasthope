@@ -854,8 +854,8 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
   // Admin authentication states
   const [adminUsername, setAdminUsername] = useState<string>("");
   const [adminPassword, setAdminPassword] = useState<string>("");
-  const [authToken, setAuthToken] = useState<string>(() => localStorage.getItem("myco_admin_token") || "");
-  const [authMode, setAuthMode] = useState<"legacy" | "supabase" | null>(() => localStorage.getItem("myco_admin_token") ? "legacy" : null);
+const [authToken, setAuthToken] = useState<string>("");
+const [authMode, setAuthMode] = useState<"legacy" | "supabase" | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
   const [magicLinkNotice, setMagicLinkNotice] = useState<string>("");
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
@@ -1572,9 +1572,9 @@ const [heroBgUrlInput, setHeroBgUrlInput] = useState("");
       return session.access_token;
     }
 
-    if (authToken) {
-      return authToken;
-    }
+    if (authMode === "legacy" && authToken && authToken.split(":").length === 3) {
+  return authToken;
+}
 
     throw new Error("Your admin session is not ready. Please log out and log in again.");
   };
