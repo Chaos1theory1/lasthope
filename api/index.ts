@@ -1,5 +1,10 @@
 import dotenv from "dotenv";
-dotenv.config({ override: true });
+
+// Do not let a committed .env file override Vercel production environment variables.
+// In production/Vercel, use only the variables configured in Vercel Project Settings.
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+  dotenv.config();
+}
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -15,15 +20,38 @@ const SUPABASE_STATE_TABLE = process.env.SUPABASE_STATE_TABLE || "site_state";
 const PUBLIC_STATE_ID = "public";
 const ADMIN_USERS_STATE_ID = "admin_users";
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || "";
+const cleanEnvValue = (value?: string) =>
+  String(value || "")
+    .replace(/^["']|["']$/g, "")
+    .trim();
+
+const SUPABASE_URL = cleanEnvValue(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SUPABASE_ANON_KEY = cleanEnvValue(
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY
+);
+const SUPABASE_SERVICE_ROLE_KEY = cleanEnvValue(
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY
+);
+
 const SUPABASE_SERVER_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_SERVER_KEY);
+const canVerifySupabaseAuth = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+console.log("[Supabase Config]", {
+  hasUrl: Boolean(SUPABASE_URL),
+  projectRef: SUPABASE_URL.match(/^https:\/\/([^.]+)\.supabase\.co/)?.[1] || "",
+  hasAnonKey: Boolean(SUPABASE_ANON_KEY),
+  anonKeyPrefix: SUPABASE_ANON_KEY ? SUPABASE_ANON_KEY.slice(0, 14) : "",
+  hasServiceRoleKey: Boolean(SUPABASE_SERVICE_ROLE_KEY),
+  serviceRolePrefix: SUPABASE_SERVICE_ROLE_KEY ? SUPABASE_SERVICE_ROLE_KEY.slice(0, 10) : ""
+});
 
 const supabaseServer = createClient(
-  SUPABASE_URL || "https://liudctunhgozfmwkooeq.supabase.co",
-  SUPABASE_SERVER_KEY || "sb_publishable_wVBHZDYlclODhethUGUYqA_fuM2gvW6",
+  SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_SERVER_KEY || "placeholder-key",
   {
     auth: {
       autoRefreshToken: false,
@@ -32,10 +60,9 @@ const supabaseServer = createClient(
   }
 );
 
-
 const supabaseAuthVerifier = createClient(
-  SUPABASE_URL || "https://liudctunhgozfmwkooeq.supabase.co",
-  SUPABASE_ANON_KEY || SUPABASE_SERVER_KEY || "sb_publishable_wVBHZDYlclODhethUGUYqA_fuM2gvW6",
+  SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_ANON_KEY || "placeholder-anon-key",
   {
     auth: {
       autoRefreshToken: false,
@@ -52,8 +79,8 @@ function getSupabaseClientForRequest(req: express.Request) {
   }
 
   return createClient(
-    SUPABASE_URL || "https://liudctunhgozfmwkooeq.supabase.co",
-    SUPABASE_ANON_KEY || "sb_publishable_wVBHZDYlclODhethUGUYqA_fuM2gvW6",
+    SUPABASE_URL || "https://placeholder.supabase.co",
+    SUPABASE_ANON_KEY || "placeholder-anon-key",
     {
       auth: {
         autoRefreshToken: false,
@@ -773,7 +800,8 @@ async function isActiveAppAdminByEmail(
 }
 
 async function getSupabaseAdminFromToken(token: string): Promise<AdminUser | null> {
-  if (!isSupabaseConfigured) {
+  if (!canVerifySupabaseAuth) {
+    console.error("Cannot verify Supabase token. Missing SUPABASE_URL and/or SUPABASE_ANON_KEY in backend environment.");
     return null;
   }
 
@@ -839,7 +867,7 @@ if (supabaseAdmin) {
 if (tokenLooksLikeJwt) {
   return res.status(403).json({
     error:
-      "Supabase session token was received, but the backend could not verify it as an active admin. Check SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, and public.app_admins."
+      "Supabase session token was received, but the backend could not verify it as an active admin. Check Vercel runtime logs for the [Supabase Config] line and Supabase token verification error. Most common causes: a committed .env file overriding Vercel variables, missing backend SUPABASE_ANON_KEY, wrong backend SUPABASE_URL, or missing active row in public.app_admins."
   });
 }
 
