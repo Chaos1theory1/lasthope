@@ -4013,9 +4013,19 @@ const handleUploadHeroBackground = async (file: File) => {
                     </div>
                     <div>
                       <span className="text-[10px] text-stone-400 font-mono block text-right">BATCH STATUS</span>
-                      <span className={`text-xs font-bold ${selectedQrProduct.status === "Available" ? "text-emerald-700" : "text-rose-700"}`}>
-                        ● {selectedQrProduct.status}
-                      </span>
+                      <span
+  className={`text-xs font-bold ${
+    selectedQrProduct.status === "Available"
+      ? "text-emerald-700"
+      : selectedQrProduct.status === "Pre-order"
+      ? "text-amber-700"
+      : selectedQrProduct.status === "Coming Soon"
+      ? "text-sky-700"
+      : "text-rose-700"
+  }`}
+>
+  ● {selectedQrProduct.status}
+</span>
                     </div>
                   </div>
                 </div>
@@ -4891,17 +4901,31 @@ const handleUploadHeroBackground = async (file: File) => {
                             <span
                               className={`px-2.5 py-1 text-[10px] font-mono uppercase font-bold rounded-full tracking-wider border shadow-xs ${
                                 product.status === "Available"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                                  : product.status === "Pre-order"
-                                  ? "bg-amber-50 border-amber-200 text-amber-800"
-                                  : "bg-rose-50 border-rose-200 text-rose-800"
+  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+  : product.status === "Pre-order"
+  ? "bg-amber-50 border-amber-200 text-amber-800"
+  : product.status === "Coming Soon"
+  ? "bg-sky-50 border-sky-200 text-sky-800"
+  : "bg-rose-50 border-rose-200 text-rose-800"
                               }`}
                             >
                               {currentLanguage === "ar"
-                                ? product.status === "Available" ? "متوفر" : product.status === "Pre-order" ? "طلب مسبق" : "غير متوفر"
-                                : currentLanguage === "fr"
-                                ? product.status === "Available" ? "Disponible" : product.status === "Pre-order" ? "Pré-commande" : "Épuisé"
-                                : product.status}
+  ? product.status === "Available"
+    ? "متوفر"
+    : product.status === "Pre-order"
+    ? "طلب مسبق"
+    : product.status === "Coming Soon"
+    ? "قريباً"
+    : "غير متوفر"
+  : currentLanguage === "fr"
+  ? product.status === "Available"
+    ? "Disponible"
+    : product.status === "Pre-order"
+    ? "Pré-commande"
+    : product.status === "Coming Soon"
+    ? "Bientôt disponible"
+    : "Épuisé"
+  : product.status}
                             </span>
                           </div>
                           
@@ -6486,6 +6510,7 @@ const handleUploadHeroBackground = async (file: File) => {
                                 <option value="Available">Available</option>
                                 <option value="Out of Stock">Out of Stock</option>
                                 <option value="Pre-order">Pre-order</option>
+                                <option value="Coming Soon">Coming Soon</option>
                               </select>
                             </div>
                           </div>

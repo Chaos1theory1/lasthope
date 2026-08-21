@@ -3,7 +3,7 @@
  */
 
 export type ProductCategory = 'Grain Spawn' | 'Bio-materials' | 'Starting Cultures' | 'Consulting & Setup';
-export type ProductStatus = 'Available' | 'Out of Stock' | 'Pre-order';
+export type ProductStatus = 'Available' | 'Out of Stock' | 'Pre-order' | 'Coming Soon';
 
 export interface Product {
   id: string;
