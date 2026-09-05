@@ -642,51 +642,90 @@ function getLocalizedContactDetail(contactDetails: any, key: "address" | "workin
   return raw;
 }
 
-const localizedTeamFallbacks: Record<string, Record<"en" | "fr" | "ar", { name?: string; role?: string; bio?: string }>> = {
+const CANONICAL_TEAM_PROFILE: Record<string, any> = {
   team_1: {
-    en: {
-      name: "AlaEddine",
-      role: "Co-founder",
-      bio: "Automation, connected systems, supervision, technical architecture, application structuring, and operational control."
-    },
-    fr: {
-      name: "AlaEddine",
-      role: "Cofondateur",
-      bio: "Automatisation, systèmes connectés, supervision, architecture technique, structuration de l'application et contrôle."
-    },
-    ar: {
-      name: "علاء الدين",
-      role: "شريك مؤسس",
-      bio: "الأتمتة والأنظمة المتصلة والإشراف والبنية التقنية وهيكلة التطبيق والتحكم التشغيلي."
-    }
+    id: "team_1",
+    name: "AlaEddine",
+    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/alaa.webp",
+    name_en: "AlaEddine",
+    name_fr: "AlaEddine",
+    name_ar: "AlaEddine",
+    role: "Cofounder",
+    role_en: "Cofounder",
+    role_fr: "Cofondateur",
+    role_ar: "شريك مؤسس",
+    bio: "Automation, connected systems, supervision, technical architecture, application structuring, and operational control.",
+    bio_en: "Automation, connected systems, supervision, technical architecture, application structuring, and operational control.",
+    bio_fr: "Automatisation, systèmes connectés, supervision, architecture technique, structuration de l'application et contrôle opérationnel.",
+    bio_ar: "الأتمتة والأنظمة المتصلة والإشراف والبنية التقنية وهيكلة التطبيق والتحكم التشغيلي."
   },
   team_2: {
-    en: {
-      name: "Ali",
-      role: "Co-founder & information systems analyst",
-      bio: "Designer of the internal Mycelium Tech Digital platform for digitizing biological protocols, batch traceability, and quality control. Responsible for market studies, production protocols, and development of the website and internal application."
-    },
-    fr: {
-      name: "Ali",
-      role: "Cofondateur & analyste en systèmes d’information",
-      bio: "Concepteur de la plateforme interne Mycelium Tech Digital dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, des protocoles de production et du développement du site et de l’application interne."
-    },
-    ar: {
-      name: "علي",
-      role: "شريك مؤسس ومحلل نظم معلومات",
-      bio: "مصمم المنصة الداخلية Mycelium Tech Digital لرقمنة البروتوكولات البيولوجية وتتبع الدفعات ومراقبة الجودة. مسؤول عن دراسات السوق وبروتوكولات الإنتاج وتطوير الموقع والتطبيق الداخلي."
-    }
+    id: "team_2",
+    name: "Ali",
+    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/preloader.gif",
+    name_en: "Ali",
+    name_fr: "Ali",
+    name_ar: "Ali",
+    role: "Cofounder & information systems analyst",
+    role_en: "Cofounder & information systems analyst",
+    role_fr: "Cofondateur & analyste en systèmes d’information",
+    role_ar: "شريك مؤسس ومحلل نظم معلومات",
+    bio: "Designer of the internal Mycelium Tech Digital platform for digitizing biological protocols, batch traceability, and quality control. Responsible for market studies, production protocols, and development of the website and internal application.",
+    bio_en: "Designer of the internal Mycelium Tech Digital platform for digitizing biological protocols, batch traceability, and quality control. Responsible for market studies, production protocols, and development of the website and internal application.",
+    bio_fr: "Concepteur de la plateforme interne Mycelium Tech Digital dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, des protocoles de production et du développement du site et de l’application interne.",
+    bio_ar: "مصمم المنصة الداخلية Mycelium Tech Digital لرقمنة البروتوكولات البيولوجية وتتبع الدفعات ومراقبة الجودة. مسؤول عن دراسات السوق وبروتوكولات الإنتاج وتطوير الموقع والتطبيق الداخلي."
   }
 };
 
+function normalizeTeamMember(member: any): TeamMember {
+  const canonical = CANONICAL_TEAM_PROFILE[member?.id];
+
+  if (!canonical) {
+    return member;
+  }
+
+  // Canonical team_1/team_2 data wins over old saved localized fields.
+  // This prevents language switching from showing stale/wrong names, roles, bios, or swapped images.
+  return {
+    ...member,
+    ...canonical
+  } as TeamMember;
+}
+
+function getNormalizedTeamMembers(team?: TeamMember[] | null): TeamMember[] {
+  const source = Array.isArray(team) && team.length > 0 ? team : defaultTeamFallbacks;
+  const normalized = source.map((member) => normalizeTeamMember(member));
+
+  Object.values(CANONICAL_TEAM_PROFILE).forEach((canonical: any) => {
+    if (!normalized.some((member) => member.id === canonical.id)) {
+      normalized.push(canonical as TeamMember);
+    }
+  });
+
+  const order: Record<string, number> = {
+    team_1: 1,
+    team_2: 2
+  };
+
+  return normalized.sort((a: any, b: any) => {
+    const aOrder = order[a.id] ?? 100;
+    const bOrder = order[b.id] ?? 100;
+
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder;
+    }
+
+    return 0;
+  });
+}
+
 function getLocalizedTeamField(member: any, field: "name" | "role" | "bio", lang: "en" | "fr" | "ar") {
+  const normalizedMember = normalizeTeamMember(member);
   const langKey = `${field}_${lang}`;
-  if (member?.[langKey]) return member[langKey];
 
-  const fallback = localizedTeamFallbacks[member?.id]?.[lang]?.[field];
-  if (fallback) return fallback;
+  if (normalizedMember?.[langKey]) return normalizedMember[langKey];
 
-  return member?.[field] || "";
+  return normalizedMember?.[field] || "";
 }
 
 type MediaFolder =
@@ -932,20 +971,8 @@ function EditableImage({
 }
 
 const defaultTeamFallbacks: TeamMember[] = [
-  {
-    id: "team_1",
-    name: "AlaEddine",
-    role: "Cofondateur",
-    bio: "Automatisation, systèmes connectés, supervision, architecture technique, structuration de l'application et contrôle.",
-    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/alaa.webp"
-  },
-  {
-    id: "team_2",
-    name: "Ali",
-    role: "Cofondateur & analyste en systèmes d’information",
-    bio: "Concepteur de la plateforme interne Mycelium Tech Digital dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, des protocoles de production et du développement du site et de l’application interne.",
-    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/preloader.gif"
-  }
+  CANONICAL_TEAM_PROFILE.team_1 as TeamMember,
+  CANONICAL_TEAM_PROFILE.team_2 as TeamMember
 ];
 
 export default function App() {
@@ -2014,19 +2041,19 @@ const [authMode, setAuthMode] = useState<"legacy" | "supabase" | null>(null);
       bio: "Provide a direct biological or logistics description.",
       image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300"
     };
-    const currentTeam = siteContent?.team || defaultTeamFallbacks;
+    const currentTeam = getNormalizedTeamMembers(siteContent?.team);
     const updated = [...currentTeam, defaultMember];
     handleUpdateTextSection("team", updated, true);
   };
 
   const handleUpdateTeamMember = (id: string, updatedFields: Partial<TeamMember>) => {
-    const currentTeam = siteContent?.team || defaultTeamFallbacks;
+    const currentTeam = getNormalizedTeamMembers(siteContent?.team);
     const updated = currentTeam.map(member => member.id === id ? { ...member, ...updatedFields } : member);
     handleUpdateTextSection("team", updated, false);
   };
 
   const handleDeleteTeamMember = (id: string) => {
-    const currentTeam = siteContent?.team || defaultTeamFallbacks;
+    const currentTeam = getNormalizedTeamMembers(siteContent?.team);
     const updated = currentTeam.filter(member => member.id !== id);
     handleUpdateTextSection("team", updated, true);
   };
@@ -4857,7 +4884,7 @@ const handleUploadHeroBackground = async (file: File) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {(siteContent.team || defaultTeamFallbacks).map((member) => (
+                {getNormalizedTeamMembers(siteContent.team).map((member) => (
                   <div key={member.id} className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xs space-y-4 flex flex-col items-center text-center group relative hover:border-emerald-300 transition-all duration-300">
                     {isAdminLoggedIn && (
                       <div className="absolute top-4 right-4 z-40 flex items-center gap-1">
