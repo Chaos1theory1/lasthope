@@ -944,7 +944,7 @@ const defaultTeamFallbacks: TeamMember[] = [
     name: "Ali",
     role: "Cofondateur & analyste en systèmes d’information",
     bio: "Concepteur de la plateforme interne Mycelium Tech Digital dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, des protocoles de production et du développement du site et de l’application interne.",
-    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/Ali.webp"
+    image: "https://liudctunhgozfmwkooeq.supabase.co/storage/v1/object/public/media/about/preloader.gif"
   }
 ];
 
