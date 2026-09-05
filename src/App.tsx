@@ -494,6 +494,59 @@ function getProductLocalizedValue(
   return defaultValue;
 }
 
+const CATALOG_FALLBACKS: Record<"en" | "fr" | "ar", {
+  title: string;
+  subtitle: string;
+  gridHeading: string;
+  servicesTitle: string;
+  servicesSubtitle: string;
+}> = {
+  en: {
+    title: "Our Mycelium Tech Digital Catalog",
+    subtitle: "Premium-grade mushroom grain spawn inoculated on organic local grains, sustainable cellular bio-materials, and advisory consulting for Tunisian farming setup.",
+    gridHeading: "Mycelial Spawn & Bio-materials",
+    servicesTitle: "Advisory Setup & Engineering Services",
+    servicesSubtitle: "We offer technical support for laboratory design, autoclave sizing, and ventilation layout schemes."
+  },
+  fr: {
+    title: "Notre catalogue Mycelium Tech Digital",
+    subtitle: "Blanc de semis de champignons de qualité premium inoculé sur des grains locaux biologiques, biomatériaux cellulaires durables et conseils pour l'installation agricole en Tunisie.",
+    gridHeading: "Blanc de semis mycélien & bio-matériaux",
+    servicesTitle: "Services de conseil, installation & ingénierie",
+    servicesSubtitle: "Nous offrons un accompagnement technique pour la conception de laboratoires, le dimensionnement des autoclaves et les schémas de ventilation."
+  },
+  ar: {
+    title: "كتالوج Mycelium Tech Digital",
+    subtitle: "أبواغ فطرية عالية الجودة مُلقّحة على حبوب محلية عضوية، ومواد حيوية مستدامة، واستشارات لتجهيز وحدات الإنتاج الفلاحي في تونس.",
+    gridHeading: "الأبواغ الفطرية والمواد الحيوية",
+    servicesTitle: "خدمات الاستشارة والتجهيز والهندسة",
+    servicesSubtitle: "نقدّم دعماً فنياً لتصميم المختبرات، وتحديد أحجام أجهزة التعقيم، ووضع مخططات التهوية."
+  }
+};
+
+function getCatalogText(
+  catalog: CatalogSection | undefined,
+  key: keyof CatalogSection,
+  lang: "en" | "fr" | "ar"
+): string {
+  const localizedKey = `${String(key)}_${lang}` as keyof CatalogSection;
+  const localizedValue = catalog?.[localizedKey];
+
+  if (typeof localizedValue === "string" && localizedValue.trim()) {
+    return localizedValue;
+  }
+
+  // Only use the base English/default field while the interface is in English.
+  // Otherwise an English saved base value would override the Arabic/French fallback.
+  const baseValue = catalog?.[key];
+
+  if (lang === "en" && typeof baseValue === "string" && baseValue.trim()) {
+    return baseValue;
+  }
+
+  return CATALOG_FALLBACKS[lang][key as keyof typeof CATALOG_FALLBACKS["en"]] || "";
+}
+
 const CONTACT_TEXT_DEFAULTS: Record<"en" | "fr" | "ar", Record<string, string>> = {
   en: {
     labCenterTitle: "Tunisian Laboratory Center",
@@ -4982,11 +5035,7 @@ const handleUploadHeroBackground = async (file: File) => {
             <div className="text-center max-w-2xl mx-auto space-y-3">
               <h1 className="font-display text-4xl font-bold tracking-tight text-stone-900 leading-tight">
                 <EditableText
-                  value={
-                    siteContent?.catalog?.[`title_${currentLanguage}` as keyof CatalogSection] ||
-                    siteContent?.catalog?.title ||
-                    "Our Mycelium Tech Digital Catalog"
-                  }
+                  value={getCatalogText(siteContent?.catalog, "title", currentLanguage)}
                   onSave={(val) => {
                     const existingCatalog = siteContent?.catalog || {};
                     handleUpdateTextSection("catalog", {
@@ -4999,11 +5048,7 @@ const handleUploadHeroBackground = async (file: File) => {
               </h1>
               <p className="text-stone-500 text-sm font-light">
                 <EditableText
-                  value={
-                    siteContent?.catalog?.[`subtitle_${currentLanguage}` as keyof CatalogSection] ||
-                    siteContent?.catalog?.subtitle ||
-                    "Premium-grade mushroom grain spawn inoculated on organic local grains, sustainable cellular bio-materials, and advisory consultings for Tunisian farming setup."
-                  }
+                  value={getCatalogText(siteContent?.catalog, "subtitle", currentLanguage)}
                   onSave={(val) => {
                     const existingCatalog = siteContent?.catalog || {};
                     handleUpdateTextSection("catalog", {
@@ -5056,11 +5101,7 @@ const handleUploadHeroBackground = async (file: File) => {
             <div className="space-y-8">
               <h2 className="font-display text-2xl font-bold text-stone-900">
                 <EditableText
-                  value={
-                    siteContent?.catalog?.[`gridHeading_${currentLanguage}` as keyof CatalogSection] ||
-                    siteContent?.catalog?.gridHeading ||
-                    "Mycelial Spawn & Bio-materials"
-                  }
+                  value={getCatalogText(siteContent?.catalog, "gridHeading", currentLanguage)}
                   onSave={(val) => {
                     const existingCatalog = siteContent?.catalog || {};
                     handleUpdateTextSection("catalog", {
@@ -5179,11 +5220,7 @@ const handleUploadHeroBackground = async (file: File) => {
                   <h2 className="font-display text-2xl font-bold text-stone-900">
                     <EditableText
                       isAdmin={isAdminLoggedIn}
-                      value={
-                        siteContent?.catalog?.[`servicesTitle_${currentLanguage}` as keyof CatalogSection] ||
-                        siteContent?.catalog?.servicesTitle ||
-                        "Advisory Setup & Engineering Services"
-                      }
+                      value={getCatalogText(siteContent?.catalog, "servicesTitle", currentLanguage)}
                       onSave={(val) => {
                         const existingCatalog = siteContent?.catalog || {};
                         handleUpdateTextSection("catalog", {
@@ -5198,11 +5235,7 @@ const handleUploadHeroBackground = async (file: File) => {
                     <EditableText
                       isAdmin={isAdminLoggedIn}
                       multiline={true}
-                      value={
-                        siteContent?.catalog?.[`servicesSubtitle_${currentLanguage}` as keyof CatalogSection] ||
-                        siteContent?.catalog?.servicesSubtitle ||
-                        "We offer technical support for laboratory design, autoclave sizing, and ventilation layout schemes."
-                      }
+                      value={getCatalogText(siteContent?.catalog, "servicesSubtitle", currentLanguage)}
                       onSave={(val) => {
                         const existingCatalog = siteContent?.catalog || {};
                         handleUpdateTextSection("catalog", {
