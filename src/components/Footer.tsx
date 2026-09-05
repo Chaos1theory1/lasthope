@@ -32,10 +32,10 @@ export default function Footer({
     switch (key) {
       case "desc":
         return currentLanguage === "en"
-          ? "Bridging modern bio-technology and regional Tunisian agriculture. We produce heavy-fruiting mycelium on grain and eco-composites using agricultural co-products."
+          ? "Bridging modern biotechnology and Tunisian agriculture. We produce high-quality mycelium cultures and eco-composites from agricultural co-products."
           : currentLanguage === "ar"
-          ? "الربط بين البيولوجيا الحديثة والزراعة التونسية الإقليمية. نقوم بإنتاج أبواغ حبوب فطرية ممتازة ومواد حيوية عازلة من منتجات زراعية ثانوية."
-          : "Bridging modern bio-technology and regional Tunisian agriculture. We produce heavy-fruiting mycelium on grain and eco-composites using agricultural co-products.";
+          ? "نربط بين التكنولوجيا الحيوية الحديثة والزراعة التونسية. ننتج مستنبتات ميسيليوم عالية الجودة ومواداً حيوية صديقة للبيئة من المنتجات الزراعية الثانوية."
+          : "Nous relions la biotechnologie moderne à l’agriculture tunisienne. Nous produisons des cultures de mycélium de qualité et des éco-composites issus de coproduits agricoles.";
       case "quickLinks":
         return currentLanguage === "en" ? "Quick Navigation" : currentLanguage === "ar" ? "وصول سريع" : "Navigation Rapide";
       case "regionalOperations":
@@ -59,10 +59,24 @@ export default function Footer({
     }
   };
 
+  const translatableFooterKeys = new Set([
+    "description",
+    "regionalTitle",
+    "contactHeader",
+    "copyright",
+    "privacyText",
+    "termsText"
+  ]);
+
   const getVal = (key: string, fallback: string) => {
     if (!footerData) return fallback;
     const langKey = `${key}_${currentLanguage}`;
     if (footerData[langKey]) return footerData[langKey];
+
+    if (currentLanguage !== "en" && translatableFooterKeys.has(key)) {
+      return fallback;
+    }
+
     if (footerData[key]) return footerData[key];
     return fallback;
   };
@@ -83,7 +97,7 @@ export default function Footer({
 
   const navLabels = {
     home: currentLanguage === "en" ? "Home Overview" : currentLanguage === "ar" ? "نظرة عامة على الموقع" : "Accueil Site",
-    about: currentLanguage === "en" ? "About Sci-Lab" : currentLanguage === "ar" ? "من نحن وعلم الخلايا" : "À Propos du Labo",
+    about: currentLanguage === "en" ? "About us" : currentLanguage === "ar" ? "من نحن" : "À propos",
     products: currentLanguage === "en" ? "Products & Services" : currentLanguage === "ar" ? "المنتجات والخدمات الفطرية" : "Produits & Services",
     contact: currentLanguage === "en" ? "Contact & Inquiries" : currentLanguage === "ar" ? "الاستفسارات والاتصال الفني" : "Nous Contacter"
   };
@@ -113,7 +127,7 @@ export default function Footer({
               {getVal("description", footerDescription || t("desc"))}
             </p>
             <div className="text-xs text-stone-500 font-mono">
-              {currentLanguage === "en" ? "Laboratory ID" : currentLanguage === "ar" ? "معرّف المختبر" : "Identifiant Labo"}: {getVal("labId", "Under-Construction")}
+              {currentLanguage === "en" ? "Laboratory ID" : currentLanguage === "ar" ? "معرّف المختبر" : "Identifiant Labo"}: {getVal("labId", currentLanguage === "ar" ? "قيد الإنجاز" : currentLanguage === "fr" ? "En construction" : "Under construction")}
             </div>
           </div>
 
@@ -175,7 +189,7 @@ export default function Footer({
               </li>
               <li className={`flex items-center gap-2.5 ${isRtl ? "flex-row-reverse" : "flex-row"}`}>
                 <Phone className="h-4 w-4 text-emerald-400" />
-                <span className="text-xs font-mono">
+                <span className="text-xs font-mono" dir="ltr" style={{ unicodeBidi: "isolate" }}>
                   {contactPhone || "+216 94 038 433"}
                 </span>
               </li>

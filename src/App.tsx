@@ -241,6 +241,18 @@ gallery_subtitle: "نظرة مرئية على المختبر، إنتاج الم
     "We develop eco-composites & mycelium protective blocks that decompose within 45 days, substituting synthetic single-use expanded plastics.": "نقوم بتطوير مركبات بيئية وقوالب فطريات واقية تتحلل خلال 45 يوماً، كبديل للبلاستيك الموسع.",
     "Empowering Regional Farmers": "تمكين المزارعين الإقليميين",
     "By upcycling agricultural by-products, we generate extra income routes for Tunisian farmers while securing high-performance farming inoculants.": "من خلال إعادة تدوير المنتجات الثانوية الزراعية، نوفر مداخيل إضافية للمزارعين التونسيين مع تأمين ملقحات عالية الأداء.",
+    "Our custom packaging blocks are grown by biological binding, fully decomposing into organic soil nutrients in 45 days.": "تُنمّى قوالب التغليف الخاصة بنا عبر ترابط بيولوجي، وتتحلل بالكامل إلى مغذيات عضوية للتربة خلال 45 يوماً.",
+    "We support growers in Béja, Jendouba, and Bizerte with optimized climate templates and inoculation guidelines.": "نساند المنتجين في باجة وجندوبة وبنزرت من خلال نماذج مناخية محسّنة وإرشادات دقيقة للتلقيح.",
+    "Our Strategic Vision": "رؤيتنا الاستراتيجية",
+    "Notre vision stratégique": "رؤيتنا الاستراتيجية",
+    "Pioneering the circular bio-economy of mycological substrates in North Africa.": "ريادة الاقتصاد الحيوي الدائري لركائز الفطريات في شمال إفريقيا.",
+    "Faire de la Tunisie un pôle de la technologie du mycélium en Afrique, en transformant des déchets agricoles bruts en biomatériaux à haute valeur ajoutée grâce à des procédés biologiques à faible consommation d’énergie.": "جعل تونس قطباً لتكنولوجيا الميسيليوم في إفريقيا عبر تحويل المخلفات الزراعية الخام إلى مواد حيوية عالية القيمة باستعمال عمليات بيولوجية منخفضة الاستهلاك للطاقة.",
+    "Vision stratégique": "الرؤية الاستراتيجية",
+    "Mission stratégique": "مهمتنا الاستراتيجية",
+    "Notre mission stratégique": "مهمتنا الاستراتيجية",
+    "Tunisian Laboratory Center": "مركز المختبر التونسي",
+    "Zone Industrielle Charguia II, Tunis 2035, Tunisia": "المنطقة الصناعية الشرقية II، تونس 2035، تونس",
+    "Zone Industrielle Charguia II, Tunis 2035, Tunisie": "المنطقة الصناعية الشرقية II، تونس 2035، تونس",
     // Biotech (About Biology Page Copy)
     biotechBadge: "العملية البيوتكنولوجية",
     biotechTitle: "كيف نحول الحبوب التونسية إلى أبواغ عالية الحيوية",
@@ -308,6 +320,12 @@ gallery_subtitle: "Un aperçu visuel de notre laboratoire, de la production de m
     "We develop eco-composites & mycelium protective blocks that decompose within 45 days, substituting synthetic single-use expanded plastics.": "Emballages et blocs de protection biosourcés et biodégradables en 45 jours remplaçant le polystyrène expansé.",
     "Empowering Regional Farmers": "Autonomisation des Agriculteurs",
     "By upcycling agricultural by-products, we generate extra income routes for Tunisian farmers while securing high-performance farming inoculants.": "Génération de revenus complémentaires pour les agriculteurs locaux via la valorisation de leurs résidus fauchés.",
+    "Our custom packaging blocks are grown by biological binding, fully decomposing into organic soil nutrients in 45 days.": "Nos blocs d’emballage sur mesure sont cultivés par liaison biologique et se décomposent entièrement en nutriments organiques du sol en 45 jours.",
+    "We support growers in Béja, Jendouba, and Bizerte with optimized climate templates and inoculation guidelines.": "Nous accompagnons les producteurs de Béja, Jendouba et Bizerte avec des modèles climatiques optimisés et des protocoles d’inoculation.",
+    "Our Strategic Vision": "Notre vision stratégique",
+    "Pioneering the circular bio-economy of mycological substrates in North Africa.": "Faire de la Tunisie un pôle de la technologie du mycélium en Afrique, en transformant des déchets agricoles bruts en biomatériaux à haute valeur ajoutée grâce à des procédés biologiques à faible consommation d’énergie.",
+    "Tunisian Laboratory Center": "Centre du laboratoire tunisien",
+    "Zone Industrielle Charguia II, Tunis 2035, Tunisia": "Zone Industrielle Charguia II, Tunis 2035, Tunisie",
     // Biotech (About Biology Page Copy)
     biotechBadge: "Le Procédé Biotechnologique",
     biotechTitle: "Comment nous transformons les grains locaux en mycélium robuste",
@@ -342,6 +360,34 @@ gallery_subtitle: "Un aperçu visuel de notre laboratoire, de la production de m
     workingHours: "Lundi - Vendredi: 08:30 - 17:30 (GMT+1)"
   }
 };
+
+const KNOWN_TEXT_TRANSLATIONS: Record<"en" | "fr" | "ar", Record<string, string>> = {
+  en: {
+    "Notre vision stratégique": "Our Strategic Vision",
+    "Vision stratégique": "Strategic Vision",
+    "Faire de la Tunisie un pôle de la technologie du mycélium en Afrique, en transformant des déchets agricoles bruts en biomatériaux à haute valeur ajoutée grâce à des procédés biologiques à faible consommation d’énergie.": "To make Tunisia a hub for mycelium technology in Africa by transforming raw agricultural waste into high-value biomaterials through low-energy biological processes.",
+    "مهمتنا الاستراتيجية": "Our Strategic Mission",
+    "رؤيتنا الاستراتيجية": "Our Strategic Vision"
+  },
+  fr: {
+    "Our Strategic Vision": "Notre vision stratégique",
+    "Pioneering the circular bio-economy of mycological substrates in North Africa.": "Faire de la Tunisie un pôle de la technologie du mycélium en Afrique, en transformant des déchets agricoles bruts en biomatériaux à haute valeur ajoutée grâce à des procédés biologiques à faible consommation d’énergie.",
+    "رؤيتنا الاستراتيجية": "Notre vision stratégique"
+  },
+  ar: {
+    "Our Strategic Vision": "رؤيتنا الاستراتيجية",
+    "Notre vision stratégique": "رؤيتنا الاستراتيجية",
+    "Vision stratégique": "الرؤية الاستراتيجية",
+    "Pioneering the circular bio-economy of mycological substrates in North Africa.": "ريادة الاقتصاد الحيوي الدائري لركائز الفطريات في شمال إفريقيا.",
+    "Faire de la Tunisie un pôle de la technologie du mycélium en Afrique, en transformant des déchets agricoles bruts en biomatériaux à haute valeur ajoutée grâce à des procédés biologiques à faible consommation d’énergie.": "جعل تونس قطباً لتكنولوجيا الميسيليوم في إفريقيا عبر تحويل المخلفات الزراعية الخام إلى مواد حيوية عالية القيمة باستعمال عمليات بيولوجية منخفضة الاستهلاك للطاقة."
+  }
+};
+
+function getKnownTextTranslation(value: any, lang: "en" | "fr" | "ar") {
+  const cleanValue = typeof value === "string" ? value.trim() : "";
+  if (!cleanValue) return "";
+  return KNOWN_TEXT_TRANSLATIONS[lang]?.[cleanValue] || "";
+}
 
 function getLocalizedValue(
   sectionObj: any,
@@ -420,6 +466,11 @@ if (localizedValue !== undefined && localizedValue !== null && localizedValue !=
     }
   }
 
+  const translatedKnownText = getKnownTextTranslation(sectionObj[key], currentLanguage as "en" | "fr" | "ar");
+  if (translatedKnownText) {
+    return translatedKnownText;
+  }
+
   if (sectionObj[key] !== undefined && sectionObj[key] !== null && sectionObj[key] !== "") {
     return sectionObj[key];
   }
@@ -441,6 +492,148 @@ function getProductLocalizedValue(
     return product[fieldKey];
   }
   return defaultValue;
+}
+
+const CONTACT_TEXT_DEFAULTS: Record<"en" | "fr" | "ar", Record<string, string>> = {
+  en: {
+    labCenterTitle: "Tunisian Laboratory Center",
+    officeAddressLabel: "Office Address",
+    clientHotlinesLabel: "Client Hotlines",
+    officeHoursPrefix: "Office Hours",
+    address: "Zone Industrielle Charguia II, Tunis 2035, Tunisia",
+    phone: "+216 94 038 433",
+    workingHours: "Monday - Friday: 08:30 - 17:30 (GMT+1)",
+    formNameLabel: "Your Name *",
+    formNamePlaceholder: "e.g. Mehdi Saïd",
+    formEmailLabel: "Your Email Address *",
+    formEmailPlaceholder: "mehdi@example.tn",
+    formPhoneLabel: "Phone Number (Optional)",
+    formPhonePlaceholder: "e.g. +216 98 123 456",
+    formSubjectLabel: "Subject *",
+    formSubjectPlaceholder: "Inquiry or order request",
+    formMessageLabel: "Your Message Details *",
+    formMessagePlaceholder: "Please write details about substrate volumes, mushroom varieties, or your design requirements...",
+    formSubmitting: "Submitting message request...",
+    formSendButton: "Send Inquiry Message",
+    messageSuccessTitle: "Message Sent Successfully!",
+    messageSuccessBody: "Thank you, your contact request has reached our lab team. We will review your inquiry and follow up as soon as possible.",
+    sendAnotherMessage: "Send another message"
+  },
+  fr: {
+    labCenterTitle: "Centre du laboratoire tunisien",
+    officeAddressLabel: "Adresse du bureau",
+    clientHotlinesLabel: "Contacts directs",
+    officeHoursPrefix: "Horaires",
+    address: "Zone Industrielle Charguia II, Tunis 2035, Tunisie",
+    phone: "+216 94 038 433",
+    workingHours: "Lundi - Vendredi: 08:30 - 17:30 (GMT+1)",
+    formNameLabel: "Votre nom *",
+    formNamePlaceholder: "ex. Mehdi Saïd",
+    formEmailLabel: "Votre adresse email *",
+    formEmailPlaceholder: "mehdi@example.tn",
+    formPhoneLabel: "Numéro de téléphone (optionnel)",
+    formPhonePlaceholder: "ex. +216 98 123 456",
+    formSubjectLabel: "Sujet *",
+    formSubjectPlaceholder: "Demande d'information ou de commande",
+    formMessageLabel: "Détails de votre message *",
+    formMessagePlaceholder: "Décrivez vos volumes de substrat, variétés de champignons ou besoins de conception...",
+    formSubmitting: "Envoi de la demande...",
+    formSendButton: "Envoyer la demande",
+    messageSuccessTitle: "Message envoyé avec succès !",
+    messageSuccessBody: "Merci, votre demande a bien été transmise à notre équipe de laboratoire. Nous l’examinerons et vous répondrons dans les meilleurs délais.",
+    sendAnotherMessage: "Envoyer un autre message"
+  },
+  ar: {
+    labCenterTitle: "مركز المختبر التونسي",
+    officeAddressLabel: "عنوان المكتب",
+    clientHotlinesLabel: "أرقام الاتصال",
+    officeHoursPrefix: "ساعات العمل",
+    address: "المنطقة الصناعية الشرقية II، تونس 2035، تونس",
+    phone: "+216 94 038 433",
+    workingHours: "الإثنين - الجمعة: 08:30 - 17:30 (GMT+1)",
+    formNameLabel: "الاسم واللقب *",
+    formNamePlaceholder: "مثال: مهدي سعيد",
+    formEmailLabel: "البريد الإلكتروني *",
+    formEmailPlaceholder: "mehdi@example.tn",
+    formPhoneLabel: "رقم الهاتف (اختياري)",
+    formPhonePlaceholder: "مثال: +216 98 123 456",
+    formSubjectLabel: "الموضوع *",
+    formSubjectPlaceholder: "طلب معلومات أو طلب شراء",
+    formMessageLabel: "تفاصيل رسالتك *",
+    formMessagePlaceholder: "اكتب تفاصيل حول كميات الركائز أو أصناف الفطر أو احتياجات التصميم الخاصة بك...",
+    formSubmitting: "جارٍ إرسال الطلب...",
+    formSendButton: "إرسال الرسالة",
+    messageSuccessTitle: "تم إرسال الرسالة بنجاح!",
+    messageSuccessBody: "شكراً لك، وصلت رسالتك إلى فريق المختبر. سنراجع طلبك ونرد عليك في أقرب وقت ممكن.",
+    sendAnotherMessage: "إرسال رسالة أخرى"
+  }
+};
+
+function localizedContactText(key: string, lang: "en" | "fr" | "ar") {
+  return CONTACT_TEXT_DEFAULTS[lang][key] || CONTACT_TEXT_DEFAULTS.en[key] || key;
+}
+
+function getLocalizedContactDetail(contactDetails: any, key: "address" | "workingHours", lang: "en" | "fr" | "ar") {
+  const langKey = `${key}_${lang}`;
+  if (contactDetails?.[langKey]) return contactDetails[langKey];
+
+  const raw = contactDetails?.[key];
+  const englishDefault = CONTACT_TEXT_DEFAULTS.en[key];
+  const frenchDefault = CONTACT_TEXT_DEFAULTS.fr[key];
+  const arabicDefault = CONTACT_TEXT_DEFAULTS.ar[key];
+
+  if (!raw || raw === englishDefault || raw === frenchDefault || raw === arabicDefault) {
+    return localizedContactText(key, lang);
+  }
+
+  return raw;
+}
+
+const localizedTeamFallbacks: Record<string, Record<"en" | "fr" | "ar", { name?: string; role?: string; bio?: string }>> = {
+  team_1: {
+    en: {
+      name: "AlaEddine",
+      role: "Co-founder",
+      bio: "Automation, connected systems, supervision, technical architecture, application structuring, and operational control."
+    },
+    fr: {
+      name: "AlaEddine",
+      role: "Cofondateur",
+      bio: "Automatisation, systèmes connectés, supervision, architecture technique, structuration de l'application et contrôle."
+    },
+    ar: {
+      name: "علاء الدين",
+      role: "شريك مؤسس",
+      bio: "الأتمتة والأنظمة المتصلة والإشراف والبنية التقنية وهيكلة التطبيق والتحكم التشغيلي."
+    }
+  },
+  team_2: {
+    en: {
+      name: "Ali",
+      role: "Co-founder & information systems analyst",
+      bio: "Designer of the internal Mycelium Tech Digital platform for digitizing biological protocols, batch traceability, and quality control. Responsible for market studies, production protocols, and development of the website and internal application."
+    },
+    fr: {
+      name: "Ali",
+      role: "Cofondateur & analyste en systèmes d’information",
+      bio: "Concepteur de la plateforme interne Mycelium Tech Digital dédiée à la digitalisation des protocoles biologiques, à la traçabilité des lots et au contrôle qualité. Responsable des études de marché, des protocoles de production et du développement du site et de l’application interne."
+    },
+    ar: {
+      name: "علي",
+      role: "شريك مؤسس ومحلل نظم معلومات",
+      bio: "مصمم المنصة الداخلية Mycelium Tech Digital لرقمنة البروتوكولات البيولوجية وتتبع الدفعات ومراقبة الجودة. مسؤول عن دراسات السوق وبروتوكولات الإنتاج وتطوير الموقع والتطبيق الداخلي."
+    }
+  }
+};
+
+function getLocalizedTeamField(member: any, field: "name" | "role" | "bio", lang: "en" | "fr" | "ar") {
+  const langKey = `${field}_${lang}`;
+  if (member?.[langKey]) return member[langKey];
+
+  const fallback = localizedTeamFallbacks[member?.id]?.[lang]?.[field];
+  if (fallback) return fallback;
+
+  return member?.[field] || "";
 }
 
 type MediaFolder =
@@ -4660,23 +4853,23 @@ const handleUploadHeroBackground = async (file: File) => {
                     <div className="space-y-1">
                       <h3 className="font-display font-medium text-lg text-stone-900 leading-tight">
                         <EditableText
-                          value={member.name}
-                          onSave={(val) => handleUpdateTeamMember(member.id, { name: val })}
+                          value={getLocalizedTeamField(member, "name", currentLanguage)}
+                          onSave={(val) => handleUpdateTeamMember(member.id, { name: val, [`name_${currentLanguage}`]: val })}
                           isAdmin={isAdminLoggedIn}
                         />
                       </h3>
                       <p className="text-xs font-mono font-bold text-emerald-700 uppercase tracking-wider">
                         <EditableText
-                          value={member.role}
-                          onSave={(val) => handleUpdateTeamMember(member.id, { role: val })}
+                          value={getLocalizedTeamField(member, "role", currentLanguage)}
+                          onSave={(val) => handleUpdateTeamMember(member.id, { role: val, [`role_${currentLanguage}`]: val })}
                           isAdmin={isAdminLoggedIn}
                         />
                       </p>
                     </div>
                     <p className="text-stone-500 text-xs sm:text-sm font-light leading-relaxed">
                       <EditableText
-                        value={member.bio}
-                        onSave={(val) => handleUpdateTeamMember(member.id, { bio: val })}
+                        value={getLocalizedTeamField(member, "bio", currentLanguage)}
+                        onSave={(val) => handleUpdateTeamMember(member.id, { bio: val, [`bio_${currentLanguage}`]: val })}
                         isAdmin={isAdminLoggedIn}
                         multiline={true}
                       />
@@ -4692,7 +4885,7 @@ const handleUploadHeroBackground = async (file: File) => {
                     onClick={handleAddNewTeamMember}
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer shadow-xs"
                   >
-                    + {currentLanguage === "en" ? "Add Team Member" : "Ajouter un membre"}
+                    + {currentLanguage === "en" ? "Add Team Member" : currentLanguage === "ar" ? "إضافة عضو للفريق" : "Ajouter un membre"}
                   </button>
                 </div>
               )}
@@ -5382,14 +5575,14 @@ const handleUploadHeroBackground = async (file: File) => {
                       <Check className="w-8 h-8 animate-bounce" />
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-display font-medium text-lg text-emerald-950">Message Sent Successfully!</h4>
-                      <p className="text-xs text-emerald-800 font-light">Y'atik saha, your contact request has reached our lab operators. We will verify your query and follow up.</p>
+                      <h4 className="font-display font-medium text-lg text-emerald-950">{localizedContactText("messageSuccessTitle", currentLanguage)}</h4>
+                      <p className="text-xs text-emerald-800 font-light">{localizedContactText("messageSuccessBody", currentLanguage)}</p>
                     </div>
                     <button
                       onClick={() => setMessageSuccess(false)}
                       className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg tracking-wide cursor-pointer"
                     >
-                      Send another message
+                      {localizedContactText("sendAnotherMessage", currentLanguage)}
                     </button>
                   </div>
                 ) : (
@@ -5404,64 +5597,64 @@ const handleUploadHeroBackground = async (file: File) => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-xs font-medium text-stone-700 block">Your Name *</label>
+                        <label className="text-xs font-medium text-stone-700 block">{localizedContactText("formNameLabel", currentLanguage)}</label>
                         <input
                           type="text"
                           required
                           value={contactForm.senderName}
                           onChange={(e) => setContactForm({ ...contactForm, senderName: e.target.value })}
                           className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 placeholder-stone-400 focus:outline-hidden focus:border-emerald-700 transition-all font-light"
-                          placeholder="e.g. Mehdi Saïd"
+                          placeholder={localizedContactText("formNamePlaceholder", currentLanguage)}
                         />
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-medium text-stone-700 block">Your Email Address *</label>
+                        <label className="text-xs font-medium text-stone-700 block">{localizedContactText("formEmailLabel", currentLanguage)}</label>
                         <input
                           type="email"
                           required
                           value={contactForm.senderEmail}
                           onChange={(e) => setContactForm({ ...contactForm, senderEmail: e.target.value })}
                           className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 placeholder-stone-400 focus:outline-hidden focus:border-emerald-700 transition-all font-light"
-                          placeholder="mehdi@example.tn"
+                          placeholder={localizedContactText("formEmailPlaceholder", currentLanguage)}
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-xs font-medium text-stone-700 block">Phone Number (Optional)</label>
+                        <label className="text-xs font-medium text-stone-700 block">{localizedContactText("formPhoneLabel", currentLanguage)}</label>
                         <input
                           type="text"
                           value={contactForm.senderPhone}
                           onChange={(e) => setContactForm({ ...contactForm, senderPhone: e.target.value })}
                           className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 placeholder-stone-400 focus:outline-hidden focus:border-emerald-700 transition-all font-light"
-                          placeholder="e.g. +216 98 123 456"
+                          placeholder={localizedContactText("formPhonePlaceholder", currentLanguage)}
                         />
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-medium text-stone-700 block">Subject *</label>
+                        <label className="text-xs font-medium text-stone-700 block">{localizedContactText("formSubjectLabel", currentLanguage)}</label>
                         <input
                           type="text"
                           required
                           value={contactForm.subject}
                           onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
                           className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 placeholder-stone-400 focus:outline-hidden focus:border-emerald-700 transition-all font-light"
-                          placeholder="Inquiry or order request"
+                          placeholder={localizedContactText("formSubjectPlaceholder", currentLanguage)}
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-stone-700 block">Your Message Details *</label>
+                      <label className="text-xs font-medium text-stone-700 block">{localizedContactText("formMessageLabel", currentLanguage)}</label>
                       <textarea
                         required
                         rows={4}
                         value={contactForm.message}
                         onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                         className="w-full bg-[#fcfcf9] border border-stone-200 rounded-xl px-3.5 py-2 text-sm text-stone-900 placeholder-stone-400 focus:outline-hidden focus:border-emerald-700 transition-all font-light"
-                        placeholder="Please write details about substrate volumes, mushroom varieties, or your design requirements..."
+                        placeholder={localizedContactText("formMessagePlaceholder", currentLanguage)}
                       />
                     </div>
 
@@ -5473,10 +5666,10 @@ const handleUploadHeroBackground = async (file: File) => {
                       {isSendingMessage ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Submitting message request...
+                          {localizedContactText("formSubmitting", currentLanguage)}
                         </>
                       ) : (
-                        "Send Inquiry Message"
+                        localizedContactText("formSendButton", currentLanguage)
                       )}
                     </button>
                   </form>
@@ -5486,14 +5679,14 @@ const handleUploadHeroBackground = async (file: File) => {
               {/* Lab Coordinates and Interactive Map */}
               <div className="space-y-6 flex flex-col justify-between">
                 <div className="bg-stone-900 text-stone-300 rounded-3xl p-6 sm:p-8 space-y-4 border border-stone-800">
-                  <h3 className="font-display font-semibold text-lg text-white">Tunisian Laboratory Center</h3>
+                  <h3 className="font-display font-semibold text-lg text-white">{localizedContactText("labCenterTitle", currentLanguage)}</h3>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-light space-y-2 sm:space-y-0">
                     <div className="space-y-1">
-                      <span className="text-stone-500 font-mono uppercase block text-[10px]">Office Address</span>
+                      <span className="text-stone-500 font-mono uppercase block text-[10px]">{localizedContactText("officeAddressLabel", currentLanguage)}</span>
                       <p className="text-stone-200 leading-relaxed">
                         <EditableText
-                          value={getLocalizedValue(siteContent.contactDetails, "address", currentLanguage, "Zone Industrielle Charguia II, Tunis 2035, Tunisia")}
+                          value={getLocalizedContactDetail(siteContent.contactDetails, "address", currentLanguage)}
                           onSave={(val) => handleUpdateTextSection("contact", { ...siteContent.contactDetails, address: val, [`address_${currentLanguage}`]: val }, false)}
                           isAdmin={isAdminLoggedIn}
                           multiline={true}
@@ -5502,11 +5695,11 @@ const handleUploadHeroBackground = async (file: File) => {
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-stone-500 font-mono uppercase block text-[10px]">Client Hotlines</span>
-                      <p className="text-stone-200 font-mono">
+                      <span className="text-stone-500 font-mono uppercase block text-[10px]">{localizedContactText("clientHotlinesLabel", currentLanguage)}</span>
+                      <p className="text-stone-200 font-mono" dir="ltr" style={{ unicodeBidi: "isolate" }}>
                         <EditableText
-                          value={getLocalizedValue(siteContent.contactDetails, "phone", currentLanguage, "+216 94 038 433")}
-                          onSave={(val) => handleUpdateTextSection("contact", { ...siteContent.contactDetails, phone: val, [`phone_${currentLanguage}`]: val }, false)}
+                          value={siteContent.contactDetails?.phone || localizedContactText("phone", currentLanguage)}
+                          onSave={(val) => handleUpdateTextSection("contact", { ...siteContent.contactDetails, phone: val }, false)}
                           isAdmin={isAdminLoggedIn}
                         />
                       </p>
@@ -5522,8 +5715,8 @@ const handleUploadHeroBackground = async (file: File) => {
 
                   <div className="pt-3 border-t border-stone-800 flex items-center gap-2 text-xs">
                     <Clock className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Office Hours: <EditableText
-                      value={getLocalizedValue(siteContent.contactDetails, "workingHours", currentLanguage, "Monday - Friday: 08:30 - 17:30 (GMT+1)")}
+                    <span>{localizedContactText("officeHoursPrefix", currentLanguage)}: <EditableText
+                      value={getLocalizedContactDetail(siteContent.contactDetails, "workingHours", currentLanguage)}
                       onSave={(val) => handleUpdateTextSection("contact", { ...siteContent.contactDetails, workingHours: val, [`workingHours_${currentLanguage}`]: val }, false)}
                       isAdmin={isAdminLoggedIn}
                     /></span>
@@ -7049,9 +7242,9 @@ const handleUploadHeroBackground = async (file: File) => {
       {/* GLOBAL SUSTAINABLE FOOTER */}
       <Footer
         onNavigate={setActivePage}
-        contactEmail={siteContent?.contactDetails?.[`email_${currentLanguage}`] || siteContent?.contactDetails?.email}
-        contactPhone={siteContent?.contactDetails?.[`phone_${currentLanguage}`] || siteContent?.contactDetails?.phone}
-        contactAddress={siteContent?.contactDetails?.[`address_${currentLanguage}`] || siteContent?.contactDetails?.address}
+        contactEmail={siteContent?.contactDetails?.email}
+        contactPhone={siteContent?.contactDetails?.phone || localizedContactText("phone", currentLanguage)}
+        contactAddress={getLocalizedContactDetail(siteContent?.contactDetails, "address", currentLanguage)}
         logoUrl={siteContent?.logoUrl}
         currentLanguage={currentLanguage}
         footerData={siteContent?.footer}
