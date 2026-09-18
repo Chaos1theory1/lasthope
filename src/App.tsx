@@ -7322,6 +7322,7 @@ const handleUploadHeroBackground = async (file: File) => {
         </div>
       )}
 
+      <Analytics />
     </div>
   );
 }
