@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createClient, type User } from "@supabase/supabase-js";
+import { Analytics } from "@vercel/analytics/react";
 import {
   Sprout,
   ShieldCheck,
